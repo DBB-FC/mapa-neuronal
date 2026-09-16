@@ -34,7 +34,7 @@ jobs:
       - name: Linter oficial de Obsidian
         run: npx eslint src/
 
-      - name: Construir y probar
+      - name: Construir y probar (mapa, escritura, IA, idioma)
         run: npm test
 
       - name: Publicar el release

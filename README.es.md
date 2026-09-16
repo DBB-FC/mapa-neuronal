@@ -75,6 +75,8 @@ Eso es todo. No hay que configurar nada más, y nada de lo anterior necesita una
 | **Propiedad de tema** | La propiedad del frontmatter que agrupa y colorea (por defecto `tema`). Vacío = sin temas. |
 | **Notas visibles por capa** | En vaults grandes cada capa muestra sus notas más conectadas; el resto aparece al buscarlas. Por defecto 150. |
 | **Sección de conexiones** | El título al final de cada nota donde se escriben los motivos aprobados. |
+| **Propiedad de enlaces externos** | Propiedades del frontmatter con enlaces web (`Título \| https://…`, `https://…`, `usuario/repo`). Vacío = la sección no aparece. Solo abre `http` y `https`. |
+| **Propiedad de fecha** | Si la llenas, al aprobar un motivo también se escribe la fecha de hoy en esa propiedad. Vacía por defecto: el plugin no toca tu frontmatter. |
 | **Animación** | Pulsos de luz por los enlaces. Solo con el mapa visible, y apagada si el sistema pide reducir movimiento. |
 
 ## Conecta tu propia IA (opcional)
@@ -87,6 +89,9 @@ Compatibles: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)** y cualquier
 necesita llave ni internet.
 
 <!-- capturas/05-ia.png -->
+
+Los motivos y los resúmenes se escriben **en el idioma de tus notas**, no en el idioma de
+la interfaz.
 
 Tres reglas que el plugin impone con cualquier proveedor:
 
@@ -140,10 +145,22 @@ dibujar un rectángulo gris. En radial cada anillo se limita a 80.
 
 ## ¿Modifica mis notas?
 
-Solo en un caso: cuando presionas **Aprobar** en una sugerencia de IA, se agrega una
-línea a la sección de conexiones de una nota. Todo lo demás — capas, colores, caminos,
-vacíos, exportaciones — es de solo lectura. Las sugerencias nunca se escriben solas, y
-ninguna nota se reescribe ni se reordena.
+Solo cuando presionas **Aprobar** en una sugerencia de IA, y solo como una línea agregada
+en la sección de conexiones de esa nota. El texto que ya estaba nunca se reescribe ni se
+reordena, y tu frontmatter no se toca salvo que llenes el ajuste *Propiedad de fecha*,
+que viene vacío.
+
+Todo lo demás — capas, colores, caminos, vacíos — es de solo lectura. La otra escritura
+posible es exportar: un PNG en la carpeta que elijas.
+
+No hay telemetría, ni analítica, ni servidor: el plugin no hace ninguna llamada de red
+salvo la de la IA que tú pides, al proveedor que configuraste.
+
+## Cómo se ve
+
+El mapa se dibuja sobre un lienzo oscuro con tema claro y con tema oscuro — como un cielo
+de noche, para que los colores de los temas y los pulsos de luz de los enlaces se lean.
+El panel, las fichas y los ajustes siguen tu tema.
 
 ## Construir desde el código
 
@@ -161,6 +178,9 @@ se versiona: viaja en los releases. El build es una sola pasada de esbuild, sin 
 así que el archivo publicado sigue siendo legible.
 
 ## Licencia
+
+En el directorio de Obsidian queda etiquetado como **pagos opcionales**: funciona completo
+sin pagar para uso personal, y puede conectarse a servicios de IA de pago con tu propia llave.
 
 Código visible, no código abierto. Gratis para uso personal; se requiere licencia Pro
 para usarlo dentro de una empresa o para prestar servicios a terceros. Ver [LICENSE](LICENSE).

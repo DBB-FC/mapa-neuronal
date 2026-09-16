@@ -77,6 +77,8 @@ the above.
 | **Topic property** | The frontmatter property that groups and colours notes (default `tema`). Empty = no topics. |
 | **Notes visible per layer** | In large vaults each layer shows its most connected notes; the rest appear when you search or open them. Default 150. |
 | **Connections section** | The heading at the end of each note where approved reasons are written. |
+| **External links property** | Frontmatter properties holding web links (`Title \| https://…`, `https://…`, `user/repo`). Empty = the section never appears. Only `http`/`https` are opened. |
+| **Last-modified property** | If set, approving a reason also writes today's date in that property. Empty by default: the plugin never touches your frontmatter. |
 | **Animation** | Light pulses travelling along the links. Only while the map is visible, and off if your system asks for reduced motion. |
 
 ## Bring your own AI (optional)
@@ -89,6 +91,9 @@ Supported: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)**, and any
 needs no key and no internet.
 
 <!-- capturas/05-ia.png — selector de proveedor en ajustes -->
+
+Reasons and summaries are written **in the language of your notes**, not in the language of
+the interface.
 
 Three rules the plugin enforces, whatever provider you pick:
 
@@ -142,10 +147,22 @@ interactive instead of drawing a grey rectangle. Radial view caps each ring at 8
 
 ## Does it change my notes?
 
-Only in one case: when you press **Approve** on an AI suggestion, a line is appended to
-the connections section of one note. Everything else — layers, colours, paths, gaps,
-exports — is read-only. Suggestions are never written automatically, and no note is ever
-rewritten or reordered.
+Only when you press **Approve** on an AI suggestion, and only as an appended line in the
+connections section of that one note. Existing text is never rewritten or reordered, and
+your frontmatter is not touched unless you fill in the *Last-modified property* setting,
+which is empty by default.
+
+Everything else — layers, colours, paths, gaps, exports — is read-only. Exports are the
+one other write: a PNG into the folder you choose.
+
+There is no telemetry, no analytics and no server: the plugin makes no network request
+except the AI call you ask for, to the provider you configured.
+
+## Looks
+
+The map draws on a dark canvas in both light and dark Obsidian themes — like a night sky,
+so the topic colours and the light pulses along the links stay readable. The panel, the
+chips and the settings follow your theme.
 
 ## Build from source
 
@@ -163,6 +180,9 @@ not committed — releases carry it. The build is a single esbuild pass, no mini
 the released file stays readable.
 
 ## Licence
+
+In the Obsidian directory this plugin is labelled **optional payments**: it works fully
+for personal use with no payment, and it can connect to paid AI services with your own key.
 
 Source-available, not open source. Free for personal use; a Pro licence is required for
 use inside a company or to provide services to third parties. See [LICENSE](LICENSE).

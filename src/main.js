@@ -71,8 +71,7 @@ const EN = {
   'Cada línea es un enlace real. Toca una nota para seguir su camino y leer por qué se conecta. ⋯ para más herramientas.':
     'Every line is a real link. Tap a note to follow its path and read why it connects. ⋯ for more tools.',
   'Mapa neuronal · {0} nodos · {1} enlaces': 'Neural map · {0} nodes · {1} links',
-  ' · {0} repos': ' · {0} repos',
-  ' · {0} Archify': ' · {0} Archify',
+  ' · {0} con enlaces': ' · {0} with links',
   '{0} nodos': '{0} nodes',
   ' · +{0} ocultas': ' · +{0} hidden',
   // estado
@@ -82,7 +81,7 @@ const EN = {
   '⌁ vacíos': '⌁ gaps',
   '❤︎ salud': '❤︎ health',
   '◷ últimos {0} días': '◷ last {0} days',
-  '◯ con repositorio': '◯ with a repository',
+  '◯ con enlaces externos': '◯ with external links',
   'todas las conexiones': 'all connections',
   '→ toca la nota de destino': '→ tap the target note',
   '→ toca la nota de origen': '→ tap the source note',
@@ -102,7 +101,7 @@ const EN = {
   'Expandir todos': 'Expand all',
   'Actualizado en {0} días': 'Updated within {0} days',
   'Toda la actividad': 'All activity',
-  'Solo notas con repositorio': 'Only notes with a repository',
+  'Solo notas con enlaces externos': 'Only notes with external links',
   'Mostrar todas las conexiones': 'Show all connections',
   'Exportar imagen (PNG)': 'Export image (PNG)',
   'Recargar el mapa': 'Reload the map',
@@ -233,6 +232,44 @@ const EN = {
   'Restablecer': 'Reset',
   'Vuelve a los valores por defecto.': 'Back to the default values.',
   'Restablecer no borra la llave guardada en este dispositivo.': 'Reset does not delete the key stored on this device.',
+  // panel: títulos de los grupos de conexiones
+  'Contiene · {0}': 'Contains · {0}',
+  'notas de {0} que cuelgan de este tema': 'notes in {0} that hang from this topic',
+  'Pertenece a': 'Belongs to',
+  'la síntesis de su tema': "its topic's synthesis",
+  'Aparece en la síntesis de': 'Appears in the synthesis of',
+  'otros temas que la citan': 'other topics that cite it',
+  'Se relaciona con': 'Related to',
+  'otras notas de {0}': 'other notes in {0}',
+  'Alimenta a': 'Feeds',
+  'La usan': 'Used by',
+  'notas que se escribieron con este material': 'notes written from this material',
+  'notas de capas anteriores que se apoyan en esta': 'notes in earlier layers that rest on this one',
+  'Usa': 'Uses',
+  'notas de la capa siguiente en las que se apoya': 'notes in the next layer it rests on',
+  'Notas dentro': 'Notes inside',
+  'De dónde salió': 'Where it came from',
+  '{0} fuente(s) original(es)': '{0} original source(s)',
+  '{0} nota(s) de la primera capa': '{0} note(s) from the first layer',
+  'fuente citada en la página': 'source cited in the page',
+  'Enlaces externos': 'External links',
+  // avisos de la IA
+  'La IA no encontró base literal suficiente para afirmar un motivo.': 'The AI found no literal basis solid enough to state a reason.',
+  'El motivo tiene {0} palabras; debe ser una frase corta.': 'The reason is {0} words long; it should be a short sentence.',
+  'Una cita no aparece literal en la nota: se bloquea para no escribir algo no verificable.':
+    'One quote does not appear literally in the note: blocked, so nothing unverifiable gets written.',
+  'La nota no tiene contenido suficiente para un resumen fiel.': 'The note does not have enough content for a faithful summary.',
+  'El resumen tiene {0} palabras; debe ser breve.': 'The summary is {0} words long; it should be brief.',
+  'Una cita no aparece literal en la nota: se bloquea para no guardar algo no verificable.':
+    'One quote does not appear literally in the note: blocked, so nothing unverifiable gets saved.',
+  'Aprobaciones desde el mapa neuronal': 'Approvals from the neural map',
+  // ajustes nuevos
+  'Propiedad de enlaces externos': 'External links property',
+  'Propiedades del frontmatter con enlaces web, separadas por coma. Acepta «Título | https://…», «https://…» y «usuario/repo». Vacío = no se muestran.':
+    'Frontmatter properties holding web links, comma separated. Accepts "Title | https://…", "https://…" and "user/repo". Empty = not shown.',
+  'Propiedad de fecha de modificación': 'Last-modified property',
+  'Si la escribes, al aprobar un motivo se pone la fecha de hoy en esa propiedad de la nota. Vacío = el plugin no toca el frontmatter.':
+    'If set, approving a reason writes today’s date in that property of the note. Empty = the plugin never touches the frontmatter.',
   // proveedores
   'Crea la llave en console.anthropic.com, sección API keys.': 'Create the key at console.anthropic.com, API keys section.',
   'claude-opus-5 es el más preciso (97,7 % en nuestra prueba). claude-sonnet-5 y claude-haiku-4-5 son más baratos.':
@@ -294,6 +331,8 @@ const AJUSTES_BASE = {
   modeloIA: 'claude-opus-5',
   urlLocal: 'http://localhost:11434/v1/chat/completions',
   dobleVerificacion: true,
+  propiedadEnlaces: '',
+  propiedadFecha: '',
   carpetaAuditoria: 'Mapa neuronal/aprobaciones',
   seccionMotivos: 'Conexiones',
   configurado: false,
@@ -313,6 +352,26 @@ const rgba = (h, a) => { const v = parseInt(String(h).replace('#', ''), 16) || 0
 // Fecha LOCAL, no UTC: en Chile, después de las 21:00 toISOString() ya es el día siguiente (lección del 01.09).
 const hoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const diasDesde = (f) => { const t = Date.parse(String(f || '').slice(0, 10)); return isNaN(t) ? Infinity : (Date.now() - t) / 864e5; };
+
+// Enlaces externos declarados en el frontmatter. Acepta «Título | https://…», «https://…» y
+// «usuario/repo» (se asume GitHub). Solo http y https: una URL «javascript:» escrita en una nota
+// no debe poder ejecutarse por tocarla en el panel.
+function enlacesDe(fm, s) {
+  const props = String(s.propiedadEnlaces || '').split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+  const out = [];
+  for (const prop of props) {
+    for (const bruto of [].concat(fm[prop] || [])) {
+      const partes = String(bruto).split('|').map((x) => x.trim()).filter(Boolean);
+      if (!partes.length) continue;
+      let url = partes.length > 1 ? partes[1] : partes[0];
+      const titulo = partes.length > 1 ? partes[0] : '';
+      if (!/^[a-z][a-z0-9+.-]*:/i.test(url) && /^[\w.-]+\/[\w.-]+$/.test(url)) url = 'https://github.com/' + url;
+      if (!/^https?:\/\//i.test(url)) continue;
+      out.push({ titulo: titulo || url.replace(/^https?:\/\//i, '').slice(0, 60), url });
+    }
+  }
+  return out.slice(0, 20);
+}
 
 function leerAjustes(s) {
   const capas = s.capas.split('\n').map((l) => l.split('|').map((x) => x.trim())).filter((x) => x[0]).map((x, i) => [`L${i}`, x[0], x[1] || '']);
@@ -361,8 +420,7 @@ async function construir(app, s) {
     if (tema && !cfg.temas[tema]) cfg.temas[tema] = [tema, PALETA[Object.keys(cfg.temas).length % PALETA.length]];
     nodos[f.path] = { id: f.path, capa, ruta: f.path, titulo: String(fm.title || f.basename).slice(0, 90), tema,
       propio: !!tema, updated: fm.updated ? String(fm.updated) : null, resumenAprobado: fm.resumen ? String(fm.resumen) : null,
-      repos: [].concat(fm.repos || []).map(String),
-      archify: [].concat(fm.archify || []).map((x) => { const [t, u] = String(x).split('|'); return { titulo: u ? t : 'Mapa de arquitectura', url: u || t }; }) };
+      enlaces: enlacesDe(fm, s) };
     porRuta[f.path] = f.path;
   }
   const resueltos = app.metadataCache.resolvedLinks, sinMotivoPorNota = {}, frases = {};
@@ -388,7 +446,7 @@ async function construir(app, s) {
     if (s.fuentes) for (const m of texto.matchAll(RAW)) {
       const rid = 'raw:' + m[1];
       if (!nodos[rid]) nodos[rid] = { id: rid, capa: 0, ruta: 'raw/' + m[1], titulo: m[1].split('/').slice(1).join('/').slice(0, 80), tema: null, propio: false, fuente: true };
-      poner(rid, id, 'fuente citada en la página');
+      poner(rid, id, T('fuente citada en la página'));
     }
   }
   const vecinos = {};
@@ -494,7 +552,7 @@ class VistaMapa extends ItemView {
   constructor(hoja, plugin) {
     super(hoja); this.plugin = plugin;
     this.vista = { x: 0, y: 0, k: 1 }; this.foco = null; this.sobre = null; this.solo = null; this.filtro = '';
-    this.todas = false; this.conRepo = false; this.salud = false; this.reciente = 0;
+    this.todas = false; this.conEnlace = false; this.salud = false; this.reciente = 0;
     this.camino = null; this.eligiendo = null;
     this.colapsados = new Set(); this.forzados = new Set(); this.radial = false; this.vacios = false; this.listaVacios = []; this.sugerencia = null;
     this.punteros = new Map(); this.D = { nodos: [], aristas: [], capas: [], temas: {} };
@@ -511,8 +569,8 @@ class VistaMapa extends ItemView {
     const barra = raiz.createDiv('mn-barra'); this.barra = barra;
     this.marca = barra.createDiv({ cls: 'mn-marca', text: 'Mapa neuronal' });
     const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar' });
-    buscar.addEventListener('input', () => { this.filtro = buscar.value.trim().toLowerCase(); this.pedir(); });
-    buscar.addEventListener('keydown', (e) => { if (e.key !== 'Enter' || !this.filtro) return; const n = this.N.find((x) => (x.titulo + ' ' + x.id).toLowerCase().includes(this.filtro)); if (n) { buscar.value = ''; this.filtro = ''; this.enfocar(n.id, true); } else new Notice(T('No hay notas con ese nombre')); });
+    this.registerDomEvent(buscar, 'input', () => { this.filtro = buscar.value.trim().toLowerCase(); this.pedir(); });
+    this.registerDomEvent(buscar, 'keydown', (e) => { if (e.key !== 'Enter' || !this.filtro) return; const n = this.N.find((x) => (x.titulo + ' ' + x.id).toLowerCase().includes(this.filtro)); if (n) { buscar.value = ''; this.filtro = ''; this.enfocar(n.id, true); } else new Notice(T('No hay notas con ese nombre')); });
     this.chips = barra.createDiv('mn-chips');
     const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
@@ -536,7 +594,7 @@ class VistaMapa extends ItemView {
     if (!this.plugin.ajustes.configurado && !this.plugin.ajustes.carpetas.trim()) new AsistenteCapas(this.app, this.plugin).open();
     this.iniciarAnimacion();
   }
-  async onClose() { this.observador?.disconnect(); if (this.anim) window.cancelAnimationFrame(this.anim); this.anim = null; }
+  async onClose() { this.cerrada = true; this.observador?.disconnect(); if (this.anim) window.cancelAnimationFrame(this.anim); this.anim = null; }
 
   // ── animación: pulsos que viajan por los enlaces, en el sentido en que se compila ──
   debeAnimar() {
@@ -625,8 +683,8 @@ class VistaMapa extends ItemView {
     this.hubs = {};
     this.D.nodos.forEach((n) => { if (n.capa === ultima && n.tema && n.propio && !this.hubs[n.tema]) this.hubs[n.tema] = n.id; });
     [...this.colapsados].forEach((t) => { if (!this.D.temas[t]) this.colapsados.delete(t); });
-    const repos = new Set(this.D.nodos.flatMap((n) => n.repos || [])), arch = this.D.nodos.filter((n) => n.archify && n.archify.length).length;
-    this.marca.setText(T('Mapa neuronal · {0} nodos · {1} enlaces', this.D.nodos.length, this.D.aristas.length) + (repos.size ? T(' · {0} repos', repos.size) : '') + (arch ? T(' · {0} Archify', arch) : ''));
+    const conEnlaces = this.D.nodos.filter((n) => n.enlaces && n.enlaces.length).length;
+    this.marca.setText(T('Mapa neuronal · {0} nodos · {1} enlaces', this.D.nodos.length, this.D.aristas.length) + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : ''));
     if (this.solo && !this.D.temas[this.solo]) this.solo = null;
     if (this.vacios) this.listaVacios = this.calcularVacios();
     this.rehacer();
@@ -736,7 +794,7 @@ class VistaMapa extends ItemView {
     if (this.vacios) t.push(T('⌁ vacíos'));
     if (this.salud) t.push(T('❤︎ salud'));
     if (this.reciente) t.push(T('◷ últimos {0} días', this.reciente));
-    if (this.conRepo) t.push(T('◯ con repositorio'));
+    if (this.conEnlace) t.push(T('◯ con enlaces externos'));
     if (this.todas) t.push(T('todas las conexiones'));
     if (this.eligiendo) t.push(this.eligiendo.desde ? T('→ toca la nota de destino') : T('→ toca la nota de origen'));
     this.estado.setText(t.join(' · '));
@@ -775,7 +833,7 @@ class VistaMapa extends ItemView {
     if (this.colapsados.size) m.addItem((i) => i.setTitle(T('Expandir todos')).setIcon('expand').onClick(() => { this.colapsados.clear(); this.rehacer(); this.pintarChips(); this.pintarEstado(); }));
     m.addSeparator();
     for (const d of [0, 7, 30]) m.addItem((i) => i.setTitle(d ? T('Actualizado en {0} días', d) : T('Toda la actividad')).setChecked(this.reciente === d).setIcon('clock').onClick(() => { this.reciente = d; this.pintarEstado(); this.pedir(); }));
-    m.addItem((i) => i.setTitle(T('Solo notas con repositorio')).setChecked(this.conRepo).setIcon('github').onClick(() => { this.conRepo = !this.conRepo; this.pintarEstado(); this.pedir(); }));
+    if (this.plugin.ajustes.propiedadEnlaces) m.addItem((i) => i.setTitle(T('Solo notas con enlaces externos')).setChecked(this.conEnlace).setIcon('external-link').onClick(() => { this.conEnlace = !this.conEnlace; this.pintarEstado(); this.pedir(); }));
     m.addItem((i) => i.setTitle(T('Mostrar todas las conexiones')).setChecked(this.todas).setIcon('git-fork').onClick(() => { this.todas = !this.todas; this.pintarEstado(); this.pedir(); }));
     m.addSeparator();
     m.addItem((i) => i.setTitle(T('Exportar imagen (PNG)')).setIcon('image-down').onClick(() => this.exportar()));
@@ -847,11 +905,11 @@ class VistaMapa extends ItemView {
     if (centrar && !this.radial) { const v = this.vista; v.x = this.W * (this.angosto() ? 0.5 : 0.42) - n.x * v.k; v.y = this.H * (this.angosto() ? 0.3 : 0.5) - n.y * v.k; }
     this.pedir();
   }
-  pedir() { if (!this.pendiente) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; this.dibujar(); }); } }
+  pedir() { if (!this.pendiente && !this.cerrada) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
   visible(n) {
     if (this.dist) { if (!(n.id in this.dist)) return false; }
     else if (n.oculto) return false;
-    return (!this.conRepo || (n.repos && n.repos.length) || n.capa === this.D.capas.length - 1)
+    return (!this.conEnlace || (n.enlaces && n.enlaces.length) || n.capa === this.D.capas.length - 1)
       && (!this.solo || n.tema === this.solo)
       && (!this.filtro || (n.titulo + ' ' + n.id).toLowerCase().includes(this.filtro));
   }
@@ -992,8 +1050,7 @@ class VistaMapa extends ItemView {
       ctx.fillStyle = rgba(color(n.tema), activo ? 1 : 0.16); ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 6.283); ctx.fill();
       if (n.agrupados) { ctx.strokeStyle = rgba(color(n.tema), 0.5); ctx.lineWidth = 2 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 / vista.k, 0, 6.283); ctx.stroke(); }
       if (this.reciente && activo && !n.agrupados && diasDesde(n.updated) <= this.reciente) { ctx.strokeStyle = rgba('#FFFFFF', 0.5); ctx.lineWidth = 3 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 / vista.k, 0, 6.283); ctx.stroke(); }
-      if (n.repos && n.repos.length) { ctx.strokeStyle = rgba('#FFFFFF', activo ? 0.75 : 0.2); ctx.lineWidth = 1 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5 / vista.k, 0, 6.283); ctx.stroke(); }
-      if (n.archify && n.archify.length) { ctx.fillStyle = rgba('#FF6B6B', activo ? 1 : 0.2); ctx.beginPath(); ctx.arc(n.x + r + 3 / vista.k, n.y - r - 2 / vista.k, 2.2 / sk, 0, 6.283); ctx.fill(); }
+      if (n.enlaces && n.enlaces.length) { ctx.strokeStyle = rgba('#FFFFFF', activo ? 0.75 : 0.2); ctx.lineWidth = 1 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5 / vista.k, 0, 6.283); ctx.stroke(); }
       if (this.salud && this.problemas(n).length) { ctx.strokeStyle = '#FF6B6B'; ctx.lineWidth = 1.6 / vista.k; ctx.setLineDash([3 / vista.k, 2 / vista.k]); ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 / vista.k, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
       if (n.id === centro || (this.eligiendo && this.eligiendo.desde === n.id)) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 6 / vista.k, 0, 6.283); ctx.stroke(); }
       if (n.capa === ultima || n.agrupados || enSug || (enCamino && enCamino.has(n.id)) || (nivel && nivel[n.id] <= 1) || (radial && this.dist[n.id] <= 1) || n.id === sobreRadial || vista.k > 2.2) rotulos.push(n);
@@ -1026,13 +1083,13 @@ class VistaMapa extends ItemView {
   }
   registrarGestos() {
     const el = this.lienzo, local = (e) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    el.addEventListener('pointerdown', (e) => {
+    this.registerDomEvent(el, 'pointerdown', (e) => {
       el.setPointerCapture(e.pointerId); const [x, y] = local(e);
       this.punteros.set(e.pointerId, { x, y });
       if (this.punteros.size === 1) this.toque = { x, y, vx: this.vista.x, vy: this.vista.y, movio: false, t: Date.now() };
       if (this.punteros.size === 2) { const [p, q] = [...this.punteros.values()]; this.pellizco = { d: Math.hypot(p.x - q.x, p.y - q.y), k: this.vista.k }; this.toque = null; }
     });
-    el.addEventListener('pointermove', (e) => {
+    this.registerDomEvent(el, 'pointermove', (e) => {
       const [x, y] = local(e);
       if (this.punteros.has(e.pointerId)) this.punteros.set(e.pointerId, { x, y });
       if (this.pellizco && this.punteros.size === 2) {
@@ -1056,8 +1113,8 @@ class VistaMapa extends ItemView {
       const px = n.x * this.vista.k + this.vista.x;
       if (!this.angosto() && px > this.W - 430) { this.vista.x -= px - (this.W - 460); this.pedir(); }
     };
-    el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
-    el.addEventListener('wheel', (e) => { e.preventDefault(); const [x, y] = local(e); this.zoom(Math.exp(-e.deltaY * 0.0015), x, y); }, { passive: false });
+    this.registerDomEvent(el, 'pointerup', soltar); this.registerDomEvent(el, 'pointercancel', soltar);
+    this.registerDomEvent(el, 'wheel', (e) => { e.preventDefault(); const [x, y] = local(e); this.zoom(Math.exp(-e.deltaY * 0.0015), x, y); }, { passive: false });
   }
   elegirCamino(n) {
     if (!n) return;
@@ -1144,45 +1201,44 @@ class VistaMapa extends ItemView {
     if (capa[2] && !n.agrupados) explica.createDiv({ cls: 'mn-capa', text: T('Capa {0}: {1}.', capa[1], capa[2]) });
 
     const probs = this.problemas(n);
-    if (this.salud && probs.length) { this.titulo(lista, T('Salud'), probs.length); probs.forEach((x) => lista.createDiv({ cls: 'mn-enlace mn-archify', text: '⚠ ' + x })); }
+    if (this.salud && probs.length) { this.titulo(lista, T('Salud'), probs.length); probs.forEach((x) => lista.createDiv({ cls: 'mn-enlace mn-alerta', text: '⚠ ' + x })); }
 
     const motivoDe = (v) => this.motivo[n.id + '|' + v.id];
     const ordenar = (g) => g.sort((a, b) => (motivoDe(b) ? 1 : 0) - (motivoDe(a) ? 1 : 0) || this.ady[b.id].length - this.ady[a.id].length);
     const entrada = vec.filter((v) => v.capa === 0 && n.capa !== 0);
     const grupos = n.capa === ultima || n.agrupados
-      ? this.D.capas.map((c, i) => [i === 0 ? null : `Contiene · ${c[1]}`, vec.filter((v) => v.capa === i && i !== 0), `notas de ${c[1].toLowerCase()} que cuelgan de este tema`])
+      ? this.D.capas.map((c, i) => [i === 0 ? null : T('Contiene · {0}', c[1]), vec.filter((v) => v.capa === i && i !== 0), T('notas de {0} que cuelgan de este tema', c[1].toLowerCase())])
       : [
-          ['Pertenece a', vec.filter((v) => v.capa === ultima && v.tema === n.tema), 'la síntesis de su tema'],
-          ['Aparece en la síntesis de', vec.filter((v) => v.capa === ultima && v.tema !== n.tema), 'otros temas que la citan'],
-          ['Se relaciona con', vec.filter((v) => v.capa === n.capa && v.capa !== 0), `otras notas de ${capa[1].toLowerCase()}`],
-          [n.capa === 0 ? 'Alimenta a' : 'La usan', vec.filter((v) => v.capa < n.capa && v.capa !== 0 || (n.capa === 0 && v.capa > 0 && v.capa !== ultima)), n.capa === 0 ? 'notas que se escribieron con este material' : 'notas de capas anteriores que se apoyan en esta'],
-          ['Usa', vec.filter((v) => v.capa > n.capa && v.capa !== ultima && n.capa !== 0), 'notas de la capa siguiente en las que se apoya'],
+          [T('Pertenece a'), vec.filter((v) => v.capa === ultima && v.tema === n.tema), T('la síntesis de su tema')],
+          [T('Aparece en la síntesis de'), vec.filter((v) => v.capa === ultima && v.tema !== n.tema), T('otros temas que la citan')],
+          [T('Se relaciona con'), vec.filter((v) => v.capa === n.capa && v.capa !== 0), T('otras notas de {0}', capa[1].toLowerCase())],
+          [n.capa === 0 ? T('Alimenta a') : T('La usan'), vec.filter((v) => v.capa < n.capa && v.capa !== 0 || (n.capa === 0 && v.capa > 0 && v.capa !== ultima)), n.capa === 0 ? T('notas que se escribieron con este material') : T('notas de capas anteriores que se apoyan en esta')],
+          [T('Usa'), vec.filter((v) => v.capa > n.capa && v.capa !== ultima && n.capa !== 0), T('notas de la capa siguiente en las que se apoya')],
         ];
     for (const [titulo, g, ayuda] of grupos) {
       if (!titulo || !g.length) continue;
       this.titulo(lista, titulo, g.length, ayuda);
       for (const v of ordenar(g)) this.filaConexion(lista, v, motivoDe(v), n);
     }
-    if ((n.repos && n.repos.length) || (n.archify && n.archify.length)) {
-      this.titulo(lista, 'Código y arquitectura', (n.repos || []).length + (n.archify || []).length);
-      for (const rp of n.repos || []) {
-        const fila = lista.createDiv('mn-enlace');
-        if (rp.startsWith('local:')) { fila.setText('◯ ' + rp.slice(6) + ' — sin remoto'); continue; }
-        fila.setText('◯ github.com/' + rp); fila.onclick = () => window.open('https://github.com/' + rp, '_blank');
+    if (n.enlaces && n.enlaces.length) {
+      this.titulo(lista, T('Enlaces externos'), n.enlaces.length);
+      for (const e of n.enlaces) {
+        const fila = lista.createDiv('mn-enlace mn-externo');
+        fila.setText('↗ ' + e.titulo);
+        fila.onclick = () => window.open(e.url, '_blank');
       }
-      for (const a of n.archify || []) { const fila = lista.createDiv('mn-enlace mn-archify'); fila.setText('◆ ' + a.titulo + ' — mapa Archify'); fila.onclick = () => window.open(a.url, '_blank'); }
     }
     if (n.agrupados) {
       const miembros = this.D.nodos.filter((x) => this.rep[x.id] === n.id && x.id !== n.id);
-      this.titulo(lista, 'Notas dentro', miembros.length);
+      this.titulo(lista, T('Notas dentro'), miembros.length);
       miembros.slice(0, 40).forEach((x) => { const fila = lista.createDiv('mn-con'); fila.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[x.tema]?.[1] || '#C9D1FF' }); fila.createDiv().createEl('b', { text: x.titulo }); fila.onclick = () => !x.fuente && this.abrirNota(x.ruta); });
     }
     if (entrada.length) {
       const diarios = entrada.filter((v) => !v.fuente), fuentes = entrada.filter((v) => v.fuente);
-      this.titulo(lista, 'De dónde salió', entrada.length, [fuentes.length && `${fuentes.length} fuente(s) original(es)`, diarios.length && `${diarios.length} día(s) del diario`].filter(Boolean).join(' · '));
+      this.titulo(lista, T('De dónde salió'), entrada.length, [fuentes.length && T('{0} fuente(s) original(es)', fuentes.length), diarios.length && T('{0} nota(s) de la primera capa', diarios.length)].filter(Boolean).join(' · '));
       const fichas = lista.createDiv('mn-fichas');
       for (const v of [...fuentes, ...diarios.sort((a, b) => b.titulo.localeCompare(a.titulo))]) {
-        const f = fichas.createEl('button', { cls: 'mn-ficha' + (v.fuente ? ' fuente' : ''), text: v.fuente ? '📄 ' + v.titulo.replace(/\.md$/, '') : v.titulo.replace(/ — Resumen del día$/, '') });
+        const f = fichas.createEl('button', { cls: 'mn-ficha' + (v.fuente ? ' fuente' : ''), text: v.fuente ? '📄 ' + v.titulo.replace(/\.md$/, '') : v.titulo });
         f.onclick = () => this.enfocar(v.id, true);
       }
     }
@@ -1342,6 +1398,10 @@ class AjustesMapa extends PluginSettingTab {
     new Setting(c).setName(T('Animación')).setDesc(T('Pulsos de luz que viajan por los enlaces. Solo mientras el mapa está visible; se apaga si el sistema pide reducir movimiento.'))
       .addToggle((t) => t.setValue(p.ajustes.animacion).onChange(async (v) => { p.ajustes.animacion = v; await p.guardar(); }));
     new Setting(c).setName(T('Carpeta para exportar imágenes')).addText((t) => t.setValue(p.ajustes.carpetaExport).onChange(async (v) => { p.ajustes.carpetaExport = v.trim(); await p.guardar(); }));
+    new Setting(c).setName(T('Propiedad de enlaces externos')).setDesc(T('Propiedades del frontmatter con enlaces web, separadas por coma. Acepta «Título | https://…», «https://…» y «usuario/repo». Vacío = no se muestran.'))
+      .addText((t) => t.setValue(p.ajustes.propiedadEnlaces).onChange(async (v) => { p.ajustes.propiedadEnlaces = v.trim(); await p.guardar(); }));
+    new Setting(c).setName(T('Propiedad de fecha de modificación')).setDesc(T('Si la escribes, al aprobar un motivo se pone la fecha de hoy en esa propiedad de la nota. Vacío = el plugin no toca el frontmatter.'))
+      .addText((t) => t.setValue(p.ajustes.propiedadFecha).onChange(async (v) => { p.ajustes.propiedadFecha = v.trim(); await p.guardar(); }));
     new Setting(c).setName(T('Sección de conexiones')).setDesc(T('Título de la sección al final de cada nota donde van los motivos aprobados («- [[nota]] — motivo»).'))
       .addText((t) => t.setValue(p.ajustes.seccionMotivos).onChange(async (v) => { p.ajustes.seccionMotivos = v.trim() || 'Conexiones'; await p.guardar(); }));
     new Setting(c).setName(T('Conecta tu inteligencia artificial (opcional)')).setHeading();
@@ -1382,7 +1442,7 @@ export default class MapaNeuronal extends Plugin {
     }
     this.registerView(VISTA, (hoja) => new VistaMapa(hoja, this));
     this.addSettingTab(new AjustesMapa(this.app, this));
-    this.addRibbonIcon('brain-circuit', 'Mapa neuronal', () => this.abrir());
+    this.addRibbonIcon('brain-circuit', T('Abrir el mapa'), () => this.abrir());
     this.addCommand({ id: 'abrir', name: T('Abrir el mapa'), callback: () => this.abrir() });
     this.addCommand({ id: 'enfocar-actual', name: T('Mostrar la nota actual en el mapa'), checkCallback: (probar) => {
       const f = this.app.workspace.getActiveFile(); if (!f) return false;
@@ -1399,9 +1459,9 @@ export default class MapaNeuronal extends Plugin {
     return def.llave ? !!this.app.loadLocalStorage(CLAVE_IA(prov)) : !!this.ajustes.modeloIA;
   }
 
-  // Llamada a la API de Claude. Se usa requestUrl de Obsidian y no el SDK: el plugin no tiene paso de
-  // compilación y en el celular una llamada fetch del navegador choca con CORS; requestUrl no.
   // Una sola puerta para todos los proveedores. Devuelve el objeto JSON que pide el esquema.
+  // Se usa requestUrl de Obsidian y no un SDK: en el celular una llamada fetch del navegador choca
+  // con CORS y requestUrl no, y así el plugin no arrastra dependencias de red.
   async llamarIA(sistema, usuario, esquema) {
     const prov = this.ajustes.proveedorIA || 'claude', def = PROVEEDORES[prov];
     if (!def) throw new Error(T('Proveedor de IA desconocido.'));
@@ -1461,19 +1521,17 @@ export default class MapaNeuronal extends Plugin {
     if (origen.length > LIM || destino.length > LIM) throw new Error(T('Una de las notas es demasiado larga para enviarla completa (más de 60.000 caracteres).'));
     const nombre = (ruta) => ruta.split('/').pop().replace(/\.md$/, '');
     const sistema = 'Explicas por qué una nota de un wiki personal enlaza a otra. Reglas estrictas: usa SOLO lo que dicen las dos notas; no infieras ni completes con conocimiento externo. Respeta negaciones ("nadie lo conectó"), estados ("idea", "pendiente", "descartado", "sin verificar") y condicionales: un pendiente no es un hecho. Las citas deben ser copias LITERALES, carácter por carácter, de un fragmento de cada nota (sin reformular, sin "…"). Si la relación no se puede afirmar con citas literales, responde con suficiente=false.';
-    const usuario = `NOTA DE ORIGEN (${nombre(fr.origen)}). El enlace a [[${nombre(fr.destino)}]] está en la línea ${fr.linea}:\n<origen>\n${origen}\n</origen>\n\nNOTA ENLAZADA (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEscribe el motivo del enlace: una frase en español de 6 a 18 palabras, concreta, que diga por qué la nota de origen se conecta con la enlazada. Da una cita literal de la nota de origen (idealmente la línea ${fr.linea} o parte de ella) y una cita literal de la nota enlazada que respalde el motivo.`;
+    const usuario = `NOTA DE ORIGEN (${nombre(fr.origen)}). El enlace a [[${nombre(fr.destino)}]] está en la línea ${fr.linea}:\n<origen>\n${origen}\n</origen>\n\nNOTA ENLAZADA (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEscribe el motivo del enlace: una frase de 6 a 18 palabras, concreta, que diga por qué la nota de origen se conecta con la enlazada. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS, no en el idioma de estas instrucciones. Da una cita literal de la nota de origen (idealmente la línea ${fr.linea} o parte de ella) y una cita literal de la nota enlazada que respalde el motivo.`;
     const esquema = { type: 'object', additionalProperties: false, required: ['suficiente', 'motivo', 'cita_origen', 'cita_destino'],
       properties: { suficiente: { type: 'boolean' }, motivo: { type: 'string' }, cita_origen: { type: 'string' }, cita_destino: { type: 'string' } } };
     const g = await this.llamarIA(sistema, usuario, esquema);
-    const norm = (t) => String(t || '').replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, a, b) => b || a).replace(/[*_`]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-    const esta = (cita, texto) => { const c = norm(cita); return c.length >= 12 && (norm(texto).includes(c) || texto.replace(/\s+/g, ' ').toLowerCase().includes(String(cita).replace(/\s+/g, ' ').trim().toLowerCase())); };
     const res = { motivo: (g.motivo || '').trim(), modelo: this.ajustes.modeloIA,
-      cita_origen: g.cita_origen ? { texto: g.cita_origen, ok: esta(g.cita_origen, origen) } : null,
-      cita_destino: g.cita_destino ? { texto: g.cita_destino, ok: esta(g.cita_destino, destino) } : null };
+      cita_origen: g.cita_origen ? { texto: g.cita_origen, ok: this.verificarCita(g.cita_origen, origen) } : null,
+      cita_destino: g.cita_destino ? { texto: g.cita_destino, ok: this.verificarCita(g.cita_destino, destino) } : null };
     const palabras = res.motivo.split(/\s+/).filter(Boolean).length;
-    if (!g.suficiente || !res.motivo) { res.advertencia = 'La IA no encontró base literal suficiente para afirmar un motivo.'; res.aprobable = false; return res; }
-    if (palabras < 4 || palabras > 24) { res.advertencia = `El motivo tiene ${palabras} palabras; debe ser una frase corta.`; }
-    if (!res.cita_origen?.ok || !res.cita_destino?.ok) { res.aprobable = false; res.advertencia = 'Una cita no aparece literal en la nota: se bloquea para no escribir algo no verificable.'; return res; }
+    if (!g.suficiente || !res.motivo) { res.advertencia = T('La IA no encontró base literal suficiente para afirmar un motivo.'); res.aprobable = false; return res; }
+    if (palabras < 4 || palabras > 24) { res.advertencia = T('El motivo tiene {0} palabras; debe ser una frase corta.', palabras); }
+    if (!res.cita_origen?.ok || !res.cita_destino?.ok) { res.aprobable = false; res.advertencia = T('Una cita no aparece literal en la nota: se bloquea para no escribir algo no verificable.'); return res; }
     if (this.ajustes.dobleVerificacion) {
       const esquema2 = { type: 'object', additionalProperties: false, required: ['fiel', 'problema'], properties: { fiel: { type: 'boolean' }, problema: { type: 'string' } } };
       const sistema2 = 'Eres un revisor escéptico. Decides si un motivo de enlace es FIEL a dos notas. Es infiel si: afirma algo que las notas no dicen; convierte un pendiente, idea o posibilidad en un hecho; ignora una negación; atribuye algo a la nota equivocada; o describe otra relación distinta de la que el texto establece. Si hay cualquier duda, fiel=false.';
@@ -1492,14 +1550,14 @@ export default class MapaNeuronal extends Plugin {
     const texto = await this.app.vault.cachedRead(f);
     if (texto.length > 60000) throw new Error(T('La nota es demasiado larga para enviarla completa (más de 60.000 caracteres).'));
     const sistema = 'Resumes una nota de un wiki personal. Reglas estrictas: usa SOLO lo que dice la nota; no agregues conocimiento externo. Respeta negaciones, estados ("idea", "pendiente", "descartado", "sin verificar") y condicionales: un pendiente no es un hecho. Las citas deben ser copias LITERALES, carácter por carácter, de fragmentos de la nota. Si la nota no tiene contenido suficiente para resumirla, responde suficiente=false.';
-    const usuario = `<nota>\n${texto}\n</nota>\n\nEscribe un resumen en español de 1 o 2 frases (máximo 40 palabras) que diga qué es la nota y lo más importante que afirma. Da 1 o 2 citas literales de la nota que respalden el resumen (cada una de al menos 12 caracteres).`;
+    const usuario = `<nota>\n${texto}\n</nota>\n\nEscribe un resumen de 1 o 2 frases (máximo 40 palabras) que diga qué es la nota y lo más importante que afirma. ESCRIBE EL RESUMEN EN EL MISMO IDIOMA EN QUE ESTÁ ESCRITA LA NOTA, no en el idioma de estas instrucciones. Da 1 o 2 citas literales de la nota que respalden el resumen (cada una de al menos 12 caracteres).`;
     const esquema = { type: 'object', additionalProperties: false, required: ['suficiente', 'resumen', 'citas'], properties: { suficiente: { type: 'boolean' }, resumen: { type: 'string' }, citas: { type: 'array', items: { type: 'string' } } } };
     const g = await this.llamarIA(sistema, usuario, esquema);
     const res = { resumen: (g.resumen || '').trim(), modelo: this.ajustes.modeloIA, citas: (g.citas || []).slice(0, 2).map((t) => ({ texto: t, ok: this.verificarCita(t, texto) })) };
-    if (!g.suficiente || !res.resumen) { res.aprobable = false; res.advertencia = 'La nota no tiene contenido suficiente para un resumen fiel.'; return res; }
+    if (!g.suficiente || !res.resumen) { res.aprobable = false; res.advertencia = T('La nota no tiene contenido suficiente para un resumen fiel.'); return res; }
     const palabras = res.resumen.split(/\s+/).filter(Boolean).length;
-    if (palabras > 55) { res.aprobable = false; res.advertencia = `El resumen tiene ${palabras} palabras; debe ser breve.`; return res; }
-    if (!res.citas.length || res.citas.some((c) => !c.ok)) { res.aprobable = false; res.advertencia = 'Una cita no aparece literal en la nota: se bloquea para no guardar algo no verificable.'; return res; }
+    if (palabras > 55) { res.aprobable = false; res.advertencia = T('El resumen tiene {0} palabras; debe ser breve.', palabras); return res; }
+    if (!res.citas.length || res.citas.some((c) => !c.ok)) { res.aprobable = false; res.advertencia = T('Una cita no aparece literal en la nota: se bloquea para no guardar algo no verificable.'); return res; }
     if (this.ajustes.dobleVerificacion) {
       const esquema2 = { type: 'object', additionalProperties: false, required: ['fiel', 'problema'], properties: { fiel: { type: 'boolean' }, problema: { type: 'string' } } };
       const sistema2 = 'Eres un revisor escéptico. Decides si un resumen es FIEL a una nota. Es infiel si afirma algo que la nota no dice, convierte un pendiente o idea en hecho, ignora una negación u omite la idea central. Ante cualquier duda, fiel=false.';
@@ -1519,7 +1577,7 @@ export default class MapaNeuronal extends Plugin {
     if (!this.app.vault.getFolderByPath(carpeta)) await this.app.vault.createFolder(carpeta);
     const registro = this.app.vault.getFileByPath(ruta);
     if (registro) await this.app.vault.append(registro, entrada);
-    else await this.app.vault.create(ruta, `---\ndate: ${hoyStr}\nsource: mapa-neuronal\ntype: daily-raw\n---\n\n# Aprobaciones desde el mapa neuronal\n` + entrada);
+    else await this.app.vault.create(ruta, `---\ndate: ${hoyStr}\nsource: mapa-neuronal\n---\n\n# ${T('Aprobaciones desde el mapa neuronal')}\n` + entrada);
   }
   // Escribe el motivo aprobado en la sección final de la nota de origen y deja registro de auditoría.
   async aprobar(fr, res) {
@@ -1527,13 +1585,19 @@ export default class MapaNeuronal extends Plugin {
     const titulo = this.ajustes.seccionMotivos || 'Conexiones';
     const base = fr.destino.split('/').pop().replace(/\.md$/, ''), linea = `- [[${base}]] — ${res.motivo.replace(/\s+/g, ' ').replace(/\.$/, '')}`, hoyStr = hoy();
     await this.app.vault.process(f, (t) => {
-      let out = t.replace(/^updated: .*$/m, `updated: ${hoyStr}`);
+      const out = t;
       const esc = titulo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), i = out.search(new RegExp('^## ' + esc + '[^\\n]*$', 'm'));
       if (i < 0) return out.replace(/\s*$/, '') + `\n\n## ${titulo}\n\n${linea}\n`;
       const resto = out.slice(i), fin = resto.slice(1).search(/^## /m);
       const seccion = fin < 0 ? resto : resto.slice(0, fin + 1), despues = fin < 0 ? '' : resto.slice(fin + 1);
       return out.slice(0, i) + seccion.replace(/\s*$/, '') + `\n${linea}\n` + (despues ? '\n' + despues : '');
     });
+    // La fecha de modificación solo si el usuario la pidió: escribir en el frontmatter de alguien
+    // sin avisar es exactamente lo que el README promete que no pasa.
+    if (this.ajustes.propiedadFecha) {
+      const prop = this.ajustes.propiedadFecha;
+      await this.app.fileManager.processFrontMatter(f, (fm) => { fm[prop] = hoyStr; });
+    }
     const entrada = `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
     await this.registrar(entrada);
     this.refrescarVistas();

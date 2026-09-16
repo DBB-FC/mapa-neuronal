@@ -1,6 +1,6 @@
 {
   "name": "mapa-neuronal",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Obsidian plugin: see your vault as a layered neural network and read why each note connects.",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "node esbuild.config.mjs",
     "dev": "node esbuild.config.mjs --watch",
     "lint": "eslint src/",
-    "test": "npm run build && node pruebas/idioma.cjs"
+    "test": "npm run build && node pruebas/plugin.cjs && node pruebas/idioma.cjs"
   },
   "keywords": [
     "obsidian",

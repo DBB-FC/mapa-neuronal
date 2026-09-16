@@ -12,7 +12,7 @@ VAULT="${1:-${BRAIN_DIR:-}}"
 [ -n "$VAULT" ] || { echo "Falta la ruta del vault (o exporta BRAIN_DIR)."; exit 1; }
 [ -d "$VAULT/.obsidian" ] || { echo "No parece un vault de Obsidian: $VAULT"; exit 1; }
 
-npm run build --silent
+npm test --silent >/dev/null || { echo 'Las pruebas no pasan: no se instala nada.'; exit 1; }
 DESTINO="$VAULT/.obsidian/plugins/mapa-neuronal"
 mkdir -p "$DESTINO"
 cp main.js manifest.json styles.css "$DESTINO/"
