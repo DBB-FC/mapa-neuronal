@@ -35,4 +35,10 @@ Los nombres son búsquedas parciales en el título, sin distinguir mayúsculas.
 
 El asistente de capas del primer uso y la pantalla de ajustes usan `Modal` y `Setting`, que
 son ventanas de Obsidian, no del plugin. Esas dos capturas solo se pueden tomar dentro de
-Obsidian; por eso el README las describe con palabras.
+Obsidian, a mano.
+
+`docs/imagenes/06-ia.webp` es una de ellas: se tomó dentro de Obsidian y se recortó a la
+sección de la IA, que es la única parte sin datos del vault de quien la tomó. **Regla al
+recortar una captura hecha a mano:** fuera el título de la ventana (lleva el nombre del
+vault), fuera la lista de carpetas y temas (lleva nombres de clientes) y fuera el valor de
+«Excluir notas» (suele ser el nombre de la persona).

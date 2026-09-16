@@ -108,6 +108,8 @@ necesita llave ni internet.
 Los motivos y los resúmenes se escriben **en el idioma de tus notas**, no en el idioma de
 la interfaz.
 
+![La sección de IA en los ajustes: proveedor, llave y el botón de probar](docs/imagenes/06-ia.webp)
+
 Configurarla son cuatro campos: eliges el proveedor, pegas tu llave, eliges el modelo y
 aprietas **Probar la conexión** — una llamada mínima que te dice si responde, sin enviar
 ninguna nota. La llave queda solo en ese dispositivo.

@@ -110,6 +110,8 @@ needs no key and no internet.
 Reasons and summaries are written **in the language of your notes**, not in the language of
 the interface.
 
+![The AI section of the settings: provider, key, and the test button](docs/imagenes/06-ia.webp)
+
 Setting it up is four fields: pick the provider, paste your key, choose the model, and press
 **Test the connection** — one tiny call that tells you whether it answers, without sending
 any note. The key is stored on this device only.
