@@ -1,5 +1,7 @@
 # Mapa neuronal
 
+*Español · [Read in English](README.md)*
+
 **Mira tu vault como una red neuronal por capas, y lee *por qué* cada nota se conecta
 con la siguiente.**
 
@@ -183,7 +185,8 @@ En el directorio de Obsidian queda etiquetado como **pagos opcionales**: funcion
 sin pagar para uso personal, y puede conectarse a servicios de IA de pago con tu propia llave.
 
 Código visible, no código abierto. Gratis para uso personal; se requiere licencia Pro
-para usarlo dentro de una empresa o para prestar servicios a terceros. Ver [LICENSE](LICENSE).
+para usarlo dentro de una empresa o para prestar servicios a terceros. Ver [LICENSE](LICENSE)
+(en español, la que manda) o su [traducción al inglés](LICENSE.en.md).
 Licencias Pro y consultas: licencias@dontbuybuild.cl.
 
 ## Soporte

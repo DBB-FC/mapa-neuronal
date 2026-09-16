@@ -1,5 +1,7 @@
 # Mapa neuronal
 
+*English · [Leer en español](README.es.md)*
+
 **See your vault as a layered neural network — and read *why* each note connects to the next.**
 
 Obsidian's graph shows you *that* two notes are linked. It never tells you *why*. In a
@@ -185,7 +187,8 @@ In the Obsidian directory this plugin is labelled **optional payments**: it work
 for personal use with no payment, and it can connect to paid AI services with your own key.
 
 Source-available, not open source. Free for personal use; a Pro licence is required for
-use inside a company or to provide services to third parties. See [LICENSE](LICENSE).
+use inside a company or to provide services to third parties. See [LICENSE](LICENSE)
+(Spanish, binding) or its [English translation](LICENSE.en.md).
 Pro licences and licensing questions: licencias@dontbuybuild.cl.
 
 ## Support
