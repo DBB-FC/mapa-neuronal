@@ -4,7 +4,8 @@
 .mn-raiz { position: relative; overflow: hidden; background: #060A18; color: #E6EAFF; font-family: var(--font-monospace); font-size: 13px; }
 .mn-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 .mn-lienzo.mn-sobre-nodo { cursor: pointer; }
-.mn-barra { position: absolute; inset: 10px 12px auto 12px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; pointer-events: none; z-index: 2; }
+.mn-barra { position: absolute; inset: 10px 12px auto 12px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; pointer-events: none; z-index: 2; max-width: calc(100% - 24px); }
+.mn-barra > * { min-width: 0; }
 .mn-barra > * { pointer-events: auto; }
 .mn-marca { font-weight: 600; letter-spacing: .12em; text-transform: uppercase; font-size: 11px; color: #fff; margin-right: 4px; }
 .mn-chips { display: contents; }
@@ -12,7 +13,7 @@
 .mn-raiz button.mn-chip.activo { background: rgba(40,48,110,.85); border-color: rgba(230,234,255,.7); }
 .mn-raiz button.mn-chip.apagado { opacity: .38; }
 .mn-punto { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; background: var(--mn-color, #C9D1FF); }
-.mn-raiz input.mn-buscar { font: 12px var(--font-monospace); color: #E6EAFF; background: rgba(8,12,32,.82); border: 1px solid rgba(170,185,255,.22); border-radius: 6px; padding: 4px 9px; width: 160px; height: auto; }
+.mn-raiz input.mn-buscar { font: 12px var(--font-monospace); color: #E6EAFF; background: rgba(8,12,32,.82); border: 1px solid rgba(170,185,255,.22); border-radius: 6px; padding: 4px 9px; flex: 0 1 160px; min-width: 0; height: auto; }
 .mn-zoom { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; z-index: 2; }
 .mn-raiz .mn-zoom button { font: 600 15px var(--font-monospace); color: #E6EAFF; background: rgba(8,12,32,.85); border: 1px solid rgba(170,185,255,.22); border-radius: 8px; width: 38px; height: 38px; padding: 0; box-shadow: none; }
 .mn-guia { position: absolute; left: 12px; bottom: 14px; max-width: min(520px, calc(100% - 150px)); color: rgba(230,234,255,.6); font: 12px/1.4 var(--font-interface); z-index: 1; }
@@ -33,7 +34,7 @@
 /* celular: barra más compacta, panel como hoja inferior, sin guía */
 .is-phone .mn-marca, .mn-raiz.angosto .mn-marca { display: none; }
 .is-phone .mn-guia { display: none; }
-.is-phone .mn-raiz input.mn-buscar { width: 120px; }
+.is-phone .mn-raiz input.mn-buscar, .mn-raiz.angosto input.mn-buscar { flex: 1 1 96px; }
 .is-phone .mn-panel { left: 8px; right: 8px; width: auto; top: auto; bottom: 58px; height: 52%; }
 @media (max-width: 640px) {
   .mn-panel { left: 8px; right: 8px; width: auto; top: auto; bottom: 58px; height: 52%; }

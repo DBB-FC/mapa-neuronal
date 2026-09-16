@@ -850,6 +850,9 @@ class VistaMapa extends ItemView {
     this.dpr = window.devicePixelRatio || 1;
     this.lienzo.width = this.W * this.dpr; this.lienzo.height = this.H * this.dpr;
     this.dist = null;
+    // El CSS tiene reglas para pantallas angostas («.mn-raiz.angosto»): sin esta línea no se
+    // aplicaban nunca, y en un panel angosto de escritorio la barra se salía de la vista.
+    this.contentEl.toggleClass('angosto', this.angosto());
     if (this.radial && this.foco && this.porId[this.foco]) return this.medirRadial();
     // En el celular el mapa se arma más ancho que la pantalla y se escala para caber. La altura se arma
     // en la MISMA escala (H / escala): si no, al achicar queda aplastado en la mitad de arriba.
@@ -862,7 +865,7 @@ class VistaMapa extends ItemView {
     const margen = this.angosto() ? 70 : Math.max(120, this.W * 0.1), paso = (this.anchoLogico - reserva - 2 * margen) / (n - 1);
     this.capas = this.D.capas.map((c, i) => {
       const col = this.N.filter((x) => x.capa === i && !x.oculto), alto = Hl - arriba - abajo;
-      const gap = Math.min(alto / Math.max(col.length, 1), 28), y0 = arriba + (alto - gap * (col.length - 1)) / 2;
+      const gap = Math.min(alto / Math.max(col.length, 1), this.angosto() ? 46 : 28), y0 = arriba + (alto - gap * (col.length - 1)) / 2;
       col.forEach((x, j) => { x.x = margen + i * paso; x.y = y0 + j * gap; });
       return { x: margen + i * paso, n: col.length, y0: y0 - 22, y1: y0 + gap * Math.max(col.length - 1, 0) + 16, def: c };
     });
@@ -982,7 +985,9 @@ class VistaMapa extends ItemView {
         const tituloCapa = `${c.def[0]} · ${c.def[1]}`, wt = ctx.measureText(tituloCapa).width;
         cajas.push({ x: (i === ultima ? lx - wt : lx) - 4, y: c.y0 - 22 - 14 / sk, w: wt + 8, h: 30 / sk });
         ctx.fillText(tituloCapa, lx, c.y0 - 22);
-        ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5); ctx.fillText(`${T('{0} nodos', c.n)}${this.ocultas?.[i] ? T(' · +{0} ocultas', this.ocultas[i]) : ''}${c.def[2] ? ' · ' + c.def[2] : ''}`, lx, c.y0 - 8);
+        ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5);
+        const descripcion = c.def[2] && !this.angosto() ? ' · ' + c.def[2] : ''; // en el celular no cabe
+        ctx.fillText(`${T('{0} nodos', c.n)}${this.ocultas?.[i] ? T(' · +{0} ocultas', this.ocultas[i]) : ''}${descripcion}`, lx, c.y0 - 8);
         ctx.textAlign = 'left';
       });
     }

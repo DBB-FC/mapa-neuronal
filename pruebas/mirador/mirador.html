@@ -17,6 +17,18 @@
 </head>
 <body>
 <div id="hoja" class="view-content"></div>
+<script>
+  // Chrome sin interfaz no acepta una ventana de menos de 500 px: el tamaño del celular se
+  // impone a la HOJA, que es lo que el plugin mide. La foto se recorta después.
+  (function () {
+    const q = new URLSearchParams(location.search);
+    if (q.get('movil')) document.body.classList.add('is-phone');
+    const ancho = q.get('ancho'), alto = q.get('alto');
+    const hoja = document.getElementById('hoja');
+    if (ancho) hoja.style.width = ancho + 'px';
+    if (alto) hoja.style.height = alto + 'px';
+  })();
+</script>
 
 <script>
 // ── Lo que Obsidian agrega a HTMLElement, y el plugin usa ──────────────────────
@@ -145,6 +157,19 @@ window.exports = window.module.exports;
   // segunda pasada: el panel cambia el ancho útil y el mapa se reencuadra
   await new Promise((r) => setTimeout(r, 120));
   v.medir(); v.encuadrar(); v.dibujar();
+  // ?diag=1 → deja los números del encuadre en el DOM, para medir sin adivinar
+  if (q.get('diag')) {
+    const xs = v.N.filter((n2) => !n2.oculto).map((n2) => n2.x);
+    const pre = document.createElement('pre'); pre.id = 'diag';
+    pre.textContent = JSON.stringify({
+      W: v.W, H: v.H, escala: +v.escala.toFixed(3), anchoLogico: v.anchoLogico, vista: v.vista,
+      xReal: [Math.min(...xs) * v.vista.k + v.vista.x, Math.max(...xs) * v.vista.k + v.vista.x],
+      barra: v.barra.getBoundingClientRect().width, angosto: v.contentEl.classList.contains('angosto'),
+      buscador: document.querySelector('.mn-buscar').getBoundingClientRect().width,
+      chipsFuera: [...document.querySelectorAll('.mn-chip')].filter((c) => c.getBoundingClientRect().right > v.W - 2).map((c) => c.textContent),
+    }, null, 1);
+    document.body.appendChild(pre);
+  }
   document.title = 'listo';
 })().catch((e) => { document.title = 'ERROR: ' + e.message; console.error(e); });
 </script>
