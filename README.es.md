@@ -15,6 +15,17 @@ escribió el enlace. No una suposición: la línea real de tu propia nota.
 
 <!-- capturas/01-mapa.png — vista completa del mapa, 4 capas, tema activo -->
 
+## Cómo funciona
+
+![Arquitectura: del vault al mapa, y cómo se aprueba un motivo](docs/imagenes/arquitectura.png)
+
+Todo lo que está dentro del recuadro pasa en tu computador, sin una sola llamada de red.
+A la IA se la llama solo cuando pides una sugerencia, con tu llave; y lo que proponga
+tiene que sobrevivir la verificación de sus citas por código y tu aprobación antes de que
+se escriba una línea en tu nota. La versión interactiva del diagrama está en
+[`docs/diagramas/mapa-neuronal.html`](docs/diagramas/mapa-neuronal.html): descárgalo y
+ábrelo en un navegador.
+
 ## Qué hace
 
 - **Capas, no una madeja.** Tú decides qué carpetas van en cada capa (un asistente

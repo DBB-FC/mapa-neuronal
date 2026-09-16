@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Mapa neuronal — del vault al mapa, y cómo se aprueba un motivo",
+    "locale": "es",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1260,
+      650
+    ],
+    "views": [
+      {
+        "id": "del-vault-al-mapa",
+        "label": "Del vault al mapa",
+        "focus": [
+          "vault",
+          "lectura",
+          "grafo",
+          "mapa",
+          "panel"
+        ],
+        "note": "Todo esto pasa dentro de tu computador y sin ninguna llamada de red."
+      },
+      {
+        "id": "cadena-de-confianza",
+        "label": "Cadena de confianza",
+        "focus": [
+          "panel",
+          "ia",
+          "citas",
+          "revision",
+          "persona",
+          "escritura",
+          "auditoria"
+        ],
+        "note": "La IA propone; el código verifica las citas y la persona aprueba antes de escribir."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "vault",
+      "type": "database",
+      "label": "Tu vault",
+      "sublabel": "notas .md y frontmatter",
+      "pos": [
+        60,
+        100
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "lectura",
+      "type": "backend",
+      "label": "Lectura",
+      "sublabel": "enlaces resueltos y texto",
+      "pos": [
+        250,
+        100
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "grafo",
+      "type": "backend",
+      "label": "Grafo por capas",
+      "sublabel": "nodos, aristas y motivos",
+      "pos": [
+        440,
+        100
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "mapa",
+      "type": "frontend",
+      "label": "Mapa",
+      "sublabel": "capas, radial y vacíos",
+      "pos": [
+        630,
+        100
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "panel",
+      "type": "frontend",
+      "label": "Panel",
+      "sublabel": "por qué se conecta",
+      "pos": [
+        820,
+        100
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "ia",
+      "type": "external",
+      "label": "La IA que tú elijas",
+      "sublabel": "Claude · OpenAI · Gemini · local",
+      "pos": [
+        1030,
+        232
+      ],
+      "size": [
+        190,
+        92
+      ]
+    },
+    {
+      "id": "citas",
+      "type": "security",
+      "label": "Citas verificadas",
+      "sublabel": "las busca el código",
+      "pos": [
+        630,
+        350
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "revision",
+      "type": "backend",
+      "label": "Segunda revisión",
+      "sublabel": "¿es fiel al texto?",
+      "pos": [
+        440,
+        350
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "persona",
+      "type": "security",
+      "label": "Tu aprobación",
+      "sublabel": "un clic, o nada",
+      "pos": [
+        250,
+        350
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "escritura",
+      "type": "backend",
+      "label": "Una línea nueva",
+      "sublabel": "en la sección que elegiste",
+      "pos": [
+        60,
+        350
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "auditoria",
+      "type": "database",
+      "label": "Registro",
+      "sublabel": "fecha, modelo y citas",
+      "pos": [
+        250,
+        540
+      ],
+      "size": [
+        150,
+        72
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Tu computador — sin servidor propio y sin telemetría",
+      "wraps": [
+        "vault",
+        "lectura",
+        "grafo",
+        "mapa",
+        "panel",
+        "citas",
+        "revision",
+        "persona",
+        "escritura",
+        "auditoria"
+      ],
+      "pad": 34
+    }
+  ],
+  "connections": [
+    {
+      "id": "vault-lectura",
+      "from": "vault",
+      "to": "lectura",
+      "label": "lee el texto",
+      "labelDy": 64
+    },
+    {
+      "id": "lectura-grafo",
+      "from": "lectura",
+      "to": "grafo",
+      "label": "capas y temas",
+      "labelDy": 64
+    },
+    {
+      "id": "grafo-mapa",
+      "from": "grafo",
+      "to": "mapa",
+      "label": "orden sin cruces",
+      "labelDy": 64
+    },
+    {
+      "id": "mapa-panel",
+      "from": "mapa",
+      "to": "panel",
+      "label": "tocas una nota",
+      "variant": "emphasis",
+      "labelDy": 64
+    },
+    {
+      "id": "panel-ia",
+      "from": "panel",
+      "to": "ia",
+      "label": "solo si lo pides, con tu llave",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "ia-citas",
+      "from": "ia",
+      "to": "citas",
+      "label": "motivo + citas literales",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "right"
+    },
+    {
+      "id": "citas-revision",
+      "from": "citas",
+      "to": "revision",
+      "label": "si no aparecen, se bloquea",
+      "labelDy": -30
+    },
+    {
+      "id": "revision-persona",
+      "from": "revision",
+      "to": "persona",
+      "label": "negaciones y pendientes",
+      "labelDy": -30
+    },
+    {
+      "id": "persona-escritura",
+      "from": "persona",
+      "to": "escritura",
+      "label": "apruebas",
+      "variant": "emphasis",
+      "labelDy": -30
+    },
+    {
+      "id": "escritura-vault",
+      "from": "escritura",
+      "to": "vault",
+      "label": "vuelve a tu nota",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "escritura-auditoria",
+      "from": "escritura",
+      "to": "auditoria",
+      "label": "queda constancia",
+      "fromSide": "bottom",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Nada sale sin que lo pidas",
+      "items": [
+        "Abrir el mapa, navegar y exportar no hacen ninguna llamada de red",
+        "La llave se guarda en este dispositivo: no viaja por Sync ni por git"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "El candado no lo pone el modelo",
+      "items": [
+        "El código busca en los archivos las citas literales que devolvió la IA",
+        "Si una cita no aparece tal cual, la propuesta no se puede aprobar"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "La IA propone, tú escribes",
+      "items": [
+        "Solo se agrega una línea, en la sección que tú configuras",
+        "El texto que ya estaba nunca se reescribe"
+      ]
+    }
+  ]
+}

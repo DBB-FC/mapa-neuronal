@@ -14,6 +14,17 @@ written. Not a guess: the real line from your own note.
 
 <!-- capturas/01-mapa.png — vista completa del mapa, 4 capas, tema activo -->
 
+## How it works
+
+![Architecture: from the vault to the map, and how a reason gets approved](docs/imagenes/arquitectura.png)
+
+Everything above the dashed AI box happens inside your computer, with no network call at
+all. The AI is reached only when you ask for a suggestion, with your key; whatever it
+proposes has to survive a code check of its quotes and your approval before a single line
+is written back to your note. The interactive version of this diagram is in
+[`docs/diagramas/mapa-neuronal.html`](docs/diagramas/mapa-neuronal.html) — download it and
+open it in a browser.
+
 ## What it does
 
 - **Layers, not a hairball.** You decide which folders belong to which layer (a wizard

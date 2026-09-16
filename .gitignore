@@ -10,5 +10,10 @@ node_modules/
 # Configuración de un vault concreto: nunca en el repositorio.
 data.json
 
+# Archify: subproductos de la verificación visual, no el diagrama
+*.visual-check.*
+*.receipt.json
+.archify-*/
+
 # Basura del sistema
 .DS_Store
