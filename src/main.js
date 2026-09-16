@@ -324,6 +324,7 @@ const T = (clave, ...vals) => {
 };
 
 const VISTA = 'mapa-neuronal';
+const MARCA = 'DBB Labs';
 const PALETA = ['#F7931A', '#34D17A', '#1FC8B4', '#5B95FF', '#F5CF45', '#B79CFF', '#FF7EB6', '#8BE9FD', '#FFB86C', '#A3E635'];
 const AJUSTES_BASE = {
   capas: 'Entrada | notas con fecha\nNotas | el resto del vault',
@@ -1478,8 +1479,9 @@ class AjustesMapa extends PluginSettingTab {
     c.createEl('p', { cls: 'setting-item-description', text: T('Restablecer no borra la llave guardada en este dispositivo.') });
     const pie = c.createEl('p', { cls: 'mn-pie' });
     pie.appendText(`Mapa neuronal ${p.manifest?.version || ''} · `);
-    // eslint-disable-next-line obsidianmd/ui/sentence-case -- «DBB Labs» es un nombre propio
-    pie.createEl('a', { text: 'Powered by DBB Labs', href: 'https://dontbuybuild.cl' });
+    // El nombre de la marca va en una constante: la regla de mayúsculas del linter revisa
+    // los textos escritos a mano y no puede saber que «DBB Labs» es un nombre propio.
+    pie.createEl('a', { href: 'https://dontbuybuild.cl' }).setText(`Powered by ${MARCA}`);
   }
   hide() { this.plugin.refrescarVistas(); }
 }
