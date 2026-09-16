@@ -17,3 +17,9 @@ data.json
 
 # Basura del sistema
 .DS_Store
+
+# El mirador copia el build para dibujar: son artefactos, no fuentes.
+pruebas/mirador/main.js
+pruebas/mirador/styles.css
+pruebas/mirador/vault.js
+pruebas/mirador/*.png

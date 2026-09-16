@@ -12,7 +12,7 @@ moves through a knowledge base: what comes in → what it is about → what you 
 what it all adds up to. Click any note and you get the sentence in which the link was
 written. Not a guess: the real line from your own note.
 
-<!-- capturas/01-mapa.png — vista completa del mapa, 4 capas, tema activo -->
+![The map: four layers, left to right, in a demo vault](docs/imagenes/01-mapa.webp)
 
 ## How it works
 
@@ -41,6 +41,8 @@ open it in a browser.
   and are not. In my own vault it found two topics with 0 links where ~26 were expected.
 - **Radial view.** Centre on one note and see its world in rings: direct neighbours,
   then theirs. The animation travels outward ring by ring.
+
+  ![Radial view: one note at the centre, its world in rings](docs/imagenes/05-radial.webp)
 - **Reasons with *your* AI (optional).** If you connect an AI provider, it proposes a
   reason for links that have none — always with a literal quote from both notes, always
   verified by code, and never written to your notes until you approve it.
@@ -67,16 +69,18 @@ left ribbon.
    (Input / Entities / Knowledge / Topics / Don't show). Change what looks wrong and
    press Apply.
 
-   <!-- capturas/02-asistente.png — asistente de capas -->
-
 2. Click any note. The side panel names its layer, its topic, a two-line summary and
    every link with its reason.
 
-   <!-- capturas/03-panel.png — panel lateral con motivos -->
+   ![A note in focus, with the panel listing every link and its reason](docs/imagenes/02-panel.webp)
 
 3. `···` → **Path between two notes**, pick two, and read the chain.
 
-   <!-- capturas/04-camino.png — camino entre dos notas -->
+   ![A path between two notes, with the reason for every hop](docs/imagenes/03-camino.webp)
+
+4. `···` → **Gaps between topics**, to see what should be connected and is not.
+
+   ![The gaps panel: topic pairs that should be connected and are not](docs/imagenes/04-vacios.webp)
 
 That's it. No configuration needed beyond the wizard, and no AI key required for any of
 the above.
@@ -102,8 +106,6 @@ that have none and short summaries for notes that have no description.
 Supported: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)**, and any
 **OpenAI-compatible local server** (Ollama, LM Studio, LocalAI) — the local option
 needs no key and no internet.
-
-<!-- capturas/05-ia.png — selector de proveedor en ajustes -->
 
 Reasons and summaries are written **in the language of your notes**, not in the language of
 the interface.

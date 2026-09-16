@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mirador — el plugin dibujando un vault de demo</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #060A18; }
+  /* La vista del plugin vive dentro de un .view-content de Obsidian. */
+  #hoja { width: 1440px; height: 860px; position: relative; overflow: hidden; }
+  .view-content { padding: 16px; }
+  :root {
+    --font-monospace: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-interface: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+</style>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="hoja" class="view-content"></div>
+
+<script>
+// ── Lo que Obsidian agrega a HTMLElement, y el plugin usa ──────────────────────
+const P = HTMLElement.prototype;
+function crear(etiqueta, o) {
+  const el = document.createElement(etiqueta);
+  if (typeof o === 'string') el.className = o;
+  else if (o) {
+    if (o.cls) el.className = Array.isArray(o.cls) ? o.cls.join(' ') : o.cls;
+    if (o.text) el.textContent = o.text;
+    if (o.type) el.setAttribute('type', o.type);
+    if (o.placeholder) el.setAttribute('placeholder', o.placeholder);
+    if (o.href) el.setAttribute('href', o.href);
+    if (o.attr) for (const [k, v] of Object.entries(o.attr)) el.setAttribute(k, v);
+  }
+  return el;
+}
+P.createEl = function (etiqueta, o) { const el = crear(etiqueta, o); this.appendChild(el); return el; };
+P.createDiv = function (o) { return this.createEl('div', o); };
+P.createSpan = function (o) { return this.createEl('span', o); };
+P.setText = function (t) { this.textContent = t; return this; };
+P.empty = function () { while (this.firstChild) this.removeChild(this.firstChild); return this; };
+P.appendText = function (t) { this.appendChild(document.createTextNode(t)); return this; };
+P.addClass = function (...c) { this.classList.add(...c); return this; };
+P.removeClass = function (...c) { this.classList.remove(...c); return this; };
+P.toggleClass = function (c, v) { this.classList.toggle(c, v); return this; };
+P.hasClass = function (c) { return this.classList.contains(c); };
+P.setCssProps = function (o) { for (const [k, v] of Object.entries(o)) this.style.setProperty(k, v); return this; };
+P.show = function () { this.style.display = ''; return this; };
+P.hide = function () { this.style.display = 'none'; return this; };
+P.isShown = function () { return this.style.display !== 'none'; };
+
+// ── El módulo «obsidian», lo mínimo para dibujar ───────────────────────────────
+class Componente {
+  registerEvent() {}
+  registerDomEvent(el, tipo, fn, op) { el.addEventListener(tipo, fn, op); }
+  registerInterval() {}
+}
+const obsidian = {
+  Plugin: Componente,
+  ItemView: class extends Componente { constructor(hoja) { super(); this.leaf = hoja; } },
+  PluginSettingTab: Componente,
+  Setting: class { constructor() {} setName() { return this; } setDesc() { return this; } setHeading() { return this; } addText(f) { f(campo()); return this; } addTextArea(f) { f(campo()); return this; } addToggle(f) { f(campo()); return this; } addSlider(f) { f(campo()); return this; } addDropdown(f) { f(campo()); return this; } addButton(f) { f(campo()); return this; } },
+  Menu: class { addItem(f) { f(campo()); return this; } showAtMouseEvent() {} },
+  Modal: class { constructor() { this.contentEl = document.createElement('div'); } setTitle() {} close() {} },
+  Notice: class { constructor(m) { console.log('[aviso]', m); } },
+  Platform: { isMobile: false, isPhone: false },
+  debounce: (f) => f,
+  setIcon: (el) => { el.textContent = ''; },
+  requestUrl: async () => ({ status: 500, json: {} }),
+  normalizePath: (p) => String(p).replace(/\/+/g, '/').replace(/^\/|\/$/g, ''),
+  getLanguage: () => (new URLSearchParams(location.search).get('idioma') || 'es'),
+};
+const campo = () => { const o = {}; for (const k of ['setValue', 'onChange', 'setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'onClick', 'setTitle', 'setIcon', 'setChecked', 'setDisabled', 'setTooltip']) o[k] = () => o; o.inputEl = { type: '', rows: 0, addClass() {} }; return o; };
+window.require = (n) => { if (n === 'obsidian') return obsidian; throw new Error('sin ' + n); };
+window.module = { exports: {} };
+window.exports = window.module.exports;
+</script>
+<script src="main.js"></script>
+<script src="vault.js"></script>
+<script>
+// ── El vault falso, con la misma forma que la API que el plugin consulta ───────
+(async () => {
+  const { notas, ajustes } = window.__VAULT;
+  const rutas = Object.keys(notas);
+  const base = (p) => p.split('/').pop().replace(/\.md$/, '');
+  const porBase = {}; rutas.forEach((p) => (porBase[base(p)] = p));
+  const leerFm = (t) => {
+    const o = {}; const m = t.match(/^---\n([\s\S]*?)\n---/); if (!m) return o;
+    let clave = null;
+    for (const l of m[1].split('\n')) {
+      const lista = l.match(/^\s+-\s+(.*)$/);
+      if (lista && clave) { (o[clave] = Array.isArray(o[clave]) ? o[clave] : []).push(lista[1].replace(/^["']|["']$/g, '')); continue; }
+      const kv = l.match(/^([\w-]+):\s*(.*)$/); if (!kv) continue;
+      clave = kv[1]; o[clave] = kv[2].replace(/^["']|["']$/g, '');
+    }
+    return o;
+  };
+  const resolved = {};
+  for (const p of rutas) { resolved[p] = {}; for (const x of notas[p].matchAll(/\[\[([^\]|#]+)/g)) { const d = porBase[x[1].trim()]; if (d) resolved[p][d] = 1; } }
+  const app = {
+    vault: {
+      getMarkdownFiles: () => rutas.map((p) => ({ path: p, basename: base(p) })),
+      getFileByPath: (p) => (notas[p] !== undefined ? { path: p, basename: base(p) } : null),
+      getFolderByPath: () => null, createFolder: async () => {}, create: async () => {}, createBinary: async () => {},
+      append: async () => {}, process: async () => {}, cachedRead: async (f) => notas[f.path], read: async (f) => notas[f.path],
+    },
+    fileManager: { processFrontMatter: async () => {} },
+    metadataCache: { getFileCache: (f) => ({ frontmatter: leerFm(notas[f.path]) }), resolvedLinks: resolved, on: () => ({}) },
+    workspace: { on: () => ({}), getLeavesOfType: () => [], getActiveFile: () => null, revealLeaf: () => {}, getLeaf: () => ({ setViewState: async () => {} }) },
+    loadLocalStorage: () => null, saveLocalStorage: () => {},
+  };
+  const Plugin = window.module.exports.default || window.module.exports;
+  const plugin = new Plugin();
+  plugin.app = app;
+  plugin.ajustes = Object.assign({}, window.__AJUSTES_BASE || {}, ajustes, { animacion: false, configurado: true });
+  plugin.guardar = async () => {};
+  plugin.refrescarVistas = () => {};
+  plugin.tieneIA = () => false;
+
+  const VistaMapa = window.__VistaMapa;
+  const v = new VistaMapa({}, plugin);
+  v.app = app;
+  v.contentEl = document.getElementById('hoja');
+  await v.onOpen();
+  window.__v = v;
+  // Un foco opcional por la URL: ?foco=nombre-de-nota
+  const q = new URLSearchParams(location.search);
+  const buscar = (t) => v.N.find((x) => x.titulo.toLowerCase().includes(String(t).toLowerCase()));
+  const vista = q.get('vista') || '';
+  if (vista === 'radial') {
+    const n = buscar(q.get('foco') || '');
+    v.radial = true; if (n) v.foco = n.id; v.medir(); v.pintarEstado();
+  } else if (vista === 'vacios') {
+    v.vacios = true; v.listaVacios = v.calcularVacios(); v.abrirPanel('vacios'); v.pintarEstado();
+  } else if (vista === 'camino') {
+    const a = buscar(q.get('de')), b = buscar(q.get('a'));
+    const ruta = a && b ? v.rutaMasCorta(a.id, b.id) : null;
+    if (ruta) { v.camino = ruta; v.panelCamino(ruta); v.pintarEstado(); }
+    else document.title = 'ERROR: sin camino entre esas notas';
+  } else if (q.get('foco')) {
+    const n = buscar(q.get('foco'));
+    if (n) v.enfocar(n.id, true); else document.title = 'ERROR: no encuentro esa nota';
+  }
+  v.encuadrar(); v.dibujar();
+  // segunda pasada: el panel cambia el ancho útil y el mapa se reencuadra
+  await new Promise((r) => setTimeout(r, 120));
+  v.medir(); v.encuadrar(); v.dibujar();
+  document.title = 'listo';
+})().catch((e) => { document.title = 'ERROR: ' + e.message; console.error(e); });
+</script>
+</body>
+</html>

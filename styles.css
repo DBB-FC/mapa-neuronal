@@ -21,7 +21,7 @@
 .mn-cab { padding: 12px 14px 10px; border-bottom: 1px solid rgba(170,185,255,.18); }
 .mn-ojo { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #FF6B6B; }
 .mn-cab h3 { margin: 4px 0 2px; font: 600 15px/1.3 var(--font-interface); color: #fff; text-wrap: balance; }
-.mn-ruta { font-size: 11px; color: rgba(230,234,255,.55); word-break: break-all; }
+.mn-ruta { font-size: 11px; color: rgba(230,234,255,.55); overflow-wrap: anywhere; }
 .mn-acciones { display: flex; gap: 8px; margin-top: 8px; }
 .mn-lista { overflow-y: auto; padding: 0 14px 14px; -webkit-overflow-scrolling: touch; }
 .mn-grupo { display: flex; justify-content: space-between; margin: 14px 0 4px; font: 600 11px var(--font-monospace); letter-spacing: .08em; text-transform: uppercase; color: rgba(230,234,255,.55); }
@@ -40,7 +40,7 @@
   .mn-guia { display: none; }
 }
 
-.mn-enlace { padding: 8px 10px; margin: 4px 0; border: 1px solid rgba(170,185,255,.18); border-radius: 8px; font: 12px var(--font-monospace); color: #E6EAFF; cursor: pointer; word-break: break-all; }
+.mn-enlace { padding: 8px 10px; margin: 4px 0; border: 1px solid rgba(170,185,255,.18); border-radius: 8px; font: 12px var(--font-monospace); color: #E6EAFF; cursor: pointer; overflow-wrap: anywhere; }
 .mn-enlace:hover { background: rgba(40,48,110,.5); }
 .mn-alerta { border-color: rgba(255,107,107,.45); }
 .mn-externo { border-color: rgba(170,185,255,.35); }

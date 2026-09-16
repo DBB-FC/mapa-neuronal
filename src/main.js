@@ -966,6 +966,7 @@ class VistaMapa extends ItemView {
     const centro = enCamino || radial ? (radial ? this.foco : null) : this.foco || this.sobre;
     const nivel = centro && !radial ? this.traza(centro) : null;
     const sobreRadial = radial && this.sobre ? this.sobre : null;
+    const cajas = []; // lugares ya ocupados por texto: títulos de capa primero, rótulos después
 
     if (radial) {
       for (const a of this.anillos) {
@@ -977,7 +978,10 @@ class VistaMapa extends ItemView {
       this.capas.forEach((c, i) => {
         ctx.strokeStyle = 'rgba(170,185,255,.2)'; ctx.lineWidth = 1 / vista.k; ctx.strokeRect(c.x - 14, c.y0, 28, c.y1 - c.y0);
         ctx.textAlign = i === ultima ? 'right' : 'left'; const lx = i === ultima ? c.x + 14 : c.x - 14;
-        ctx.fillStyle = '#FFFFFF'; ctx.font = f(600, 12.5); ctx.fillText(`${c.def[0]} · ${c.def[1]}`, lx, c.y0 - 22);
+        ctx.fillStyle = '#FFFFFF'; ctx.font = f(600, 12.5);
+        const tituloCapa = `${c.def[0]} · ${c.def[1]}`, wt = ctx.measureText(tituloCapa).width;
+        cajas.push({ x: (i === ultima ? lx - wt : lx) - 4, y: c.y0 - 22 - 14 / sk, w: wt + 8, h: 30 / sk });
+        ctx.fillText(tituloCapa, lx, c.y0 - 22);
         ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5); ctx.fillText(`${T('{0} nodos', c.n)}${this.ocultas?.[i] ? T(' · +{0} ocultas', this.ocultas[i]) : ''}${c.def[2] ? ' · ' + c.def[2] : ''}`, lx, c.y0 - 8);
         ctx.textAlign = 'left';
       });
@@ -1055,12 +1059,14 @@ class VistaMapa extends ItemView {
       if (n.id === centro || (this.eligiendo && this.eligiendo.desde === n.id)) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 6 / vista.k, 0, 6.283); ctx.stroke(); }
       if (n.capa === ultima || n.agrupados || enSug || (enCamino && enCamino.has(n.id)) || (nivel && nivel[n.id] <= 1) || (radial && this.dist[n.id] <= 1) || n.id === sobreRadial || vista.k > 2.2) rotulos.push(n);
     }
-    rotulos.sort((p, q) => (nivel ? (nivel[p.id] ?? 3) - (nivel[q.id] ?? 3) : 0) || p.y - q.y);
-    const puestos = [];
+    // Las importantes se colocan primero y ninguna se dibuja encima de otra: se compara la caja
+    // real de cada rótulo, no una distancia aproximada. Antes, con el panel abierto, las
+    // etiquetas de la última capa (que siempre se dibujan) tapaban las de la capa anterior.
+    const esFijo = (n) => n.id === centro || n.id === sobreRadial || (enCamino && enCamino.has(n.id)) || n.agrupados || (!radial && n.capa === ultima);
+    rotulos.sort((p, q) => (esFijo(q) ? 1 : 0) - (esFijo(p) ? 1 : 0) || (nivel ? (nivel[p.id] ?? 3) - (nivel[q.id] ?? 3) : 0) || p.y - q.y);
+    const aire = 3 / vista.k;
     for (const n of rotulos) {
-      const fijo = n.id === centro || n.id === sobreRadial || (enCamino && enCamino.has(n.id)) || n.agrupados || (!radial && n.capa === ultima);
-      if (!fijo && puestos.some((p) => Math.abs(p.y - n.y) < 15 / vista.k && Math.abs(p.x - n.x) < 160 / vista.k)) continue;
-      puestos.push(n);
+      const fijo = esFijo(n);
       let texto = (n.capa === ultima || n.agrupados) && this.D.temas[n.tema] ? this.D.temas[n.tema][0] : n.titulo;
       if (n.agrupados) texto += ` · ${n.agrupados + 1} notas`;
       const fuerte = fijo || n.capa === ultima, tam = n.capa === ultima || n.agrupados ? 13 : 11.5;
@@ -1068,6 +1074,10 @@ class VistaMapa extends ItemView {
       const w = ctx.measureText(texto).width, pad = 4 / vista.k, h = tam / sk + 6 / vista.k, r = 12 / vista.k;
       const izquierda = radial ? n.x < this.porId[this.foco].x - 1 : n.capa === ultima;
       const x = izquierda ? n.x - r - w - pad * 2 : n.x + r, y = n.y - h / 2;
+      const caja = { x: x - aire, y: y - aire, w: w + pad * 2 + aire * 2, h: h + aire * 2 };
+      const choca = cajas.some((c) => caja.x < c.x + c.w && c.x < caja.x + caja.w && caja.y < c.y + c.h && c.y < caja.y + caja.h);
+      if (choca && n.id !== centro) continue; // la nota enfocada siempre lleva su nombre
+      cajas.push(caja);
       ctx.fillStyle = 'rgba(6,10,24,.86)'; ctx.fillRect(x, y, w + pad * 2, h);
       ctx.fillStyle = fuerte ? '#FFFFFF' : 'rgba(230,234,255,.9)'; ctx.fillText(texto, x + pad, y + h - 5 / vista.k);
     }

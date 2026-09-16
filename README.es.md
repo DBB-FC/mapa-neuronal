@@ -13,7 +13,7 @@ mueve de verdad en una base de conocimiento: lo que entra → de qué se trata �
 aprendiste → en qué se sintetiza. Toca cualquier nota y obtienes la frase en la que se
 escribió el enlace. No una suposición: la línea real de tu propia nota.
 
-<!-- capturas/01-mapa.png — vista completa del mapa, 4 capas, tema activo -->
+![El mapa: cuatro capas, de izquierda a derecha, en un vault de ejemplo](docs/imagenes/01-mapa.webp)
 
 ## Cómo funciona
 
@@ -42,6 +42,8 @@ se escriba una línea en tu nota. La versión interactiva del diagrama está en
   no lo están. En mi propio vault encontró dos temas con 0 enlaces donde se esperaban ~26.
 - **Vista radial.** Centra una nota y mira su mundo en anillos: vecinos directos, luego
   los de ellos. La animación viaja hacia fuera, anillo por anillo.
+
+  ![Vista radial: una nota al centro y su mundo en anillos](docs/imagenes/05-radial.webp)
 - **Motivos con *tu* IA (opcional).** Si conectas un proveedor, propone un motivo para
   los enlaces que no lo tienen — siempre con una cita literal de las dos notas, siempre
   verificada por código, y nunca escrita en tus notas hasta que la apruebas.
@@ -66,16 +68,18 @@ la barra izquierda.
    (Entrada / Entidades / Conocimiento / Temas / No mostrar). Corrige lo que se vea mal
    y presiona Aplicar.
 
-   <!-- capturas/02-asistente.png -->
-
 2. Toca cualquier nota. El panel lateral nombra su capa, su tema, un resumen de dos
    líneas y todos sus enlaces con su motivo.
 
-   <!-- capturas/03-panel.png -->
+   ![Una nota enfocada, con el panel mostrando cada enlace y su motivo](docs/imagenes/02-panel.webp)
 
 3. `···` → **Camino entre dos notas**, eliges dos, y lees la cadena.
 
-   <!-- capturas/04-camino.png -->
+   ![Un camino entre dos notas, con el motivo de cada salto](docs/imagenes/03-camino.webp)
+
+4. `···` → **Vacíos entre temas**, para ver lo que debería estar conectado y no lo está.
+
+   ![El panel de vacíos: pares de temas que deberían estar conectados](docs/imagenes/04-vacios.webp)
 
 Eso es todo. No hay que configurar nada más, y nada de lo anterior necesita una llave de IA.
 
@@ -100,8 +104,6 @@ lo tienen y resúmenes cortos para las notas sin descripción.
 Compatibles: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)** y cualquier
 **servidor local compatible con OpenAI** (Ollama, LM Studio, LocalAI) — el local no
 necesita llave ni internet.
-
-<!-- capturas/05-ia.png -->
 
 Los motivos y los resúmenes se escriben **en el idioma de tus notas**, no en el idioma de
 la interfaz.
