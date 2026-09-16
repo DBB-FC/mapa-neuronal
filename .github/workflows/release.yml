@@ -35,6 +35,7 @@ jobs:
         run: npx eslint src/
 
       - name: Construir y probar (mapa, escritura, IA, idioma)
+        # La prueba de interfaz necesita Chrome y se salta sola si no está.
         run: npm test
 
       - name: Publicar el release

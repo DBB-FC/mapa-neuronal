@@ -8,7 +8,7 @@ CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 [ -f ../../main.js ] || { echo "Falta main.js: corre npm run build"; exit 1; }
 cp ../../main.js main.js
 cp ../../styles.css styles.css
-printf '\nwindow.__VistaMapa = VistaMapa; window.__AJUSTES_BASE = AJUSTES_BASE;\n' >> main.js
+printf '\nwindow.__VistaMapa = VistaMapa; window.__AjustesMapa = AjustesMapa; window.__AJUSTES_BASE = AJUSTES_BASE;\n' >> main.js
 node -e "const fs=require('fs');fs.writeFileSync('vault.js','window.__VAULT = '+fs.readFileSync('vault.json','utf8')+';')"
 
 tomar() {

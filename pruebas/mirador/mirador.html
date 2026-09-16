@@ -87,6 +87,8 @@ window.require = (n) => { if (n === 'obsidian') return obsidian; throw new Error
 window.module = { exports: {} };
 window.exports = window.module.exports;
 </script>
+<script src="setting-fiel.js"></script>
+<script>obsidian.Setting = window.__SettingFiel;</script>
 <script src="main.js"></script>
 <script src="vault.js"></script>
 <script>
@@ -128,7 +130,29 @@ window.exports = window.module.exports;
   plugin.guardar = async () => {};
   plugin.refrescarVistas = () => {};
   plugin.tieneIA = () => false;
+  plugin.manifest = { id: 'mapa-neuronal', version: '0.0.0-mirador' };
 
+  // ?vista=ajustes → dibuja la pantalla de ajustes con Setting fiel, para comprobar que
+  // no se rompe a mitad de camino. Una pantalla que lanza un error se corta en silencio.
+  if (new URLSearchParams(location.search).get('vista') === 'ajustes') {
+    const Tab = window.__AjustesMapa;
+    const tab = new Tab(app, plugin);
+    tab.containerEl = document.getElementById('hoja');
+    tab.registerDomEvent = (el2, tipo, fn) => el2.addEventListener(tipo, fn);
+    let error = '';
+    try { tab.display(); } catch (e) { error = e.message; }
+    const pie = document.querySelector('.mn-pie'), logo = document.querySelector('.mn-marca-dbb');
+    const pre = document.createElement('pre'); pre.id = 'diag';
+    pre.textContent = JSON.stringify({
+      error, ajustes: document.querySelectorAll('.setting-item').length,
+      pie: pie ? pie.textContent : null,
+      logo: !!logo && /data:image\/svg\+xml/.test(logo ? getComputedStyle(logo).backgroundImage : ''),
+      probar: [...document.querySelectorAll('.setting-item-name')].map((x) => x.textContent).filter((x) => /probar|test/i.test(x)),
+    }, null, 1);
+    document.body.appendChild(pre);
+    document.title = error ? 'ERROR: ' + error : 'listo';
+    return;
+  }
   const VistaMapa = window.__VistaMapa;
   const v = new VistaMapa({}, plugin);
   v.app = app;

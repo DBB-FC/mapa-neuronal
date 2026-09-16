@@ -11,10 +11,14 @@ npm test            # builds src/main.js → main.js, then runs both test suites
 npx eslint src/     # the official Obsidian plugin linter — it must stay at 0 errors
 ```
 
-`npm test` runs 71 checks against a fake vault held in memory (no folder on your disk) and
+`npm test` runs 77 checks against a fake vault held in memory (no folder on your disk) and
 a translation check that fails if any user-visible text lacks its English or Spanish
 counterpart. If you add a string, wrap it in `T('…')` and add the English line to the `EN`
 dictionary at the top of `src/main.js`; the test will tell you if you forgot.
+
+A third check renders the settings screen in headless Chrome and fails if it breaks halfway:
+an exception inside `display()` leaves the screen half-drawn with no visible error, so the
+rest simply does not appear. It skips itself where Chrome is not installed.
 
 ## What the plugin promises, and must keep promising
 
