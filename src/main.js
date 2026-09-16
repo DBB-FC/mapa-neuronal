@@ -68,8 +68,8 @@ const EN = {
   'Alejar': 'Zoom out',
   'Encuadrar': 'Fit to screen',
   'Acercar': 'Zoom in',
-  'Cada línea es un enlace real. Toca una nota para seguir su camino y leer por qué se conecta. ⋯ para más herramientas.':
-    'Every line is a real link. Tap a note to follow its path and read why it connects. ⋯ for more tools.',
+  'Cada línea es un enlace real. Toca una nota para leer por qué se conecta. Arriba, en «⋯ herramientas»: caminos, vacíos, vista radial y exportar. El botón ⌂ vuelve a encuadrar el mapa.':
+    'Every line is a real link. Tap a note to read why it connects. Up top, under "⋯ tools": paths, gaps, radial view and export. The ⌂ button re-fits the map.',
   'Mapa neuronal · {0} nodos · {1} enlaces': 'Neural map · {0} nodes · {1} links',
   ' · {0} con enlaces': ' · {0} with links',
   '{0} nodos': '{0} nodes',
@@ -587,7 +587,7 @@ class VistaMapa extends ItemView {
     zoom.createEl('button', { text: '−', attr: { 'aria-label': T('Alejar') } }).onclick = () => this.zoom(1 / 1.3);
     zoom.createEl('button', { text: '⌂', attr: { 'aria-label': T('Encuadrar') } }).onclick = () => this.encuadrar();
     zoom.createEl('button', { text: '+', attr: { 'aria-label': T('Acercar') } }).onclick = () => this.zoom(1.3);
-    this.guia = raiz.createDiv({ cls: 'mn-guia', text: T('Cada línea es un enlace real. Toca una nota para seguir su camino y leer por qué se conecta. ⋯ para más herramientas.') });
+    this.guia = raiz.createDiv({ cls: 'mn-guia', text: T('Cada línea es un enlace real. Toca una nota para leer por qué se conecta. Arriba, en «⋯ herramientas»: caminos, vacíos, vista radial y exportar. El botón ⌂ vuelve a encuadrar el mapa.') });
     this.panel = raiz.createDiv('mn-panel');
 
     this.registrarGestos();
@@ -816,6 +816,18 @@ class VistaMapa extends ItemView {
   }
   menuHerramientas(e) {
     const m = new Menu();
+    this.llenarHerramientas(m);
+    m.showAtMouseEvent(e);
+  }
+
+  // El «···» de la pestaña también ofrece las herramientas: buscarlas solo en la ficha del mapa
+  // no es evidente, y es el primer lugar donde cualquiera de Obsidian va a mirar.
+  onPaneMenu(menu, origen) {
+    if (origen === 'more-options') { this.llenarHerramientas(menu); menu.addSeparator(); }
+    super.onPaneMenu(menu, origen);
+  }
+
+  llenarHerramientas(m) {
     m.addItem((i) => i.setTitle(T('Camino entre dos notas')).setIcon('route').onClick(() => {
       this.camino = null; this.sugerencia = null; this.eligiendo = { desde: null }; this.foco = null; this.abrirPanel(null);
       new Notice(T('Toca la nota de origen')); this.pintarEstado(); this.pedir();
@@ -847,7 +859,6 @@ class VistaMapa extends ItemView {
     m.addItem((i) => i.setTitle(T('Exportar imagen (PNG)')).setIcon('image-down').onClick(() => this.exportar()));
     m.addItem((i) => i.setTitle(T('Recargar el mapa')).setIcon('refresh-cw').onClick(() => this.recargar()));
     m.addItem((i) => i.setTitle(T('Asistente de capas')).setIcon('layers').onClick(() => new AsistenteCapas(this.app, this.plugin).open()));
-    m.showAtMouseEvent(e);
   }
 
   // ── geometría ──────────────────────────────────────────────────────────────

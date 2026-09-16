@@ -157,7 +157,18 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   try { await pl2.llamarIA('s', 'u', esquema); } catch (e) { msgSinLlave = e.message; }
   p.cierto('sin llave avisa antes de salir a la red', /key is missing/i.test(msgSinLlave));
 
-  // ── 8. El botón «Probar la conexión»: una llamada mínima, sin notas ──────────────────────────
+  // ── 8. Las herramientas también cuelgan del «···» de la pestaña ──────────────────────────────
+  const { Menu } = require('./simulado.cjs').obsidian || {};
+  const menuFalso = { items: [], addItem(f) { const c = { titulo: '', setTitle(v) { c.titulo = v; return c; }, setIcon: () => c, setChecked: () => c, onClick: () => c }; this.items.push(c); f(c); return this; }, addSeparator() { this.items.push('---'); return this; } };
+  v.onPaneMenu(menuFalso, 'more-options');
+  const titulos = menuFalso.items.filter((x) => x !== '---').map((x) => x.titulo);
+  p.cierto('el menú de la pestaña ofrece el asistente de capas', titulos.includes('Layer wizard'));
+  p.cierto('y el camino entre dos notas', titulos.includes('Path between two notes'));
+  const otroMenu = { items: [], addItem(f) { const c = { setTitle: () => c, setIcon: () => c, setChecked: () => c, onClick: () => c }; this.items.push(c); f(c); return this; }, addSeparator() { return this; } };
+  v.onPaneMenu(otroMenu, 'tab-header');
+  p.igual('en la cabecera de la pestaña no se mete', otroMenu.items.length, 0);
+
+  // ── 9. El botón «Probar la conexión»: una llamada mínima, sin notas ──────────────────────────
   app._ls = {}; app._ls[CLAVE_IA('claude')] = 'llave-de-prueba';
   pl2.ajustes.proveedorIA = 'claude'; pl2.ajustes.modeloIA = 'claude-opus-5';
   let cuerpoPrueba = null;
@@ -168,7 +179,7 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   p.cierto('la prueba no manda ninguna nota', !/tostadora|ana-soto|Encargada/i.test(cuerpoPrueba));
   p.cierto('la prueba es corta (menos de 400 caracteres)', cuerpoPrueba.length < 400);
 
-  // ── 9. El asistente de capas propone algo sensato ────────────────────────────────────────────
+  // ── 10. El asistente de capas propone algo sensato ────────────────────────────────────────────
   const filas = detectarCarpetas(app);
   const capaDe = (c) => (filas.find((f) => f.carpeta === c) || {}).capa;
   p.igual('manda el diario a la primera capa', capaDe('diario'), 0);

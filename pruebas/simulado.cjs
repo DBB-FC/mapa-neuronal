@@ -25,7 +25,7 @@ function obsidianSimulado() {
         async loadData() { return this._datos; }
         async saveData(d) { this._datos = JSON.parse(JSON.stringify(d)); }
       },
-      ItemView: class extends Componente { constructor(hoja) { super(); this.leaf = hoja; } },
+      ItemView: class extends Componente { constructor(hoja) { super(); this.leaf = hoja; } onPaneMenu() {} },
       PluginSettingTab: class extends Componente { constructor(app, plugin) { super(); this.app = app; this.plugin = plugin; } },
       Setting: class {
         constructor(c) { this.c = c; }
@@ -39,7 +39,7 @@ function obsidianSimulado() {
         addDropdown(f) { f(campo()); return this; }
         addButton(f) { f(campo()); return this; }
       },
-      Menu: class { addItem(f) { f(campo()); return this; } showAtMouseEvent() {} },
+      Menu: class { constructor() { this.items = []; } addItem(f) { const c = campo(); this.items.push(c); f(c); return this; } addSeparator() { this.items.push('---'); return this; } showAtMouseEvent() {} },
       Modal: class { constructor(app) { this.app = app; this.contentEl = el(); } setTitle() {} close() {} },
       Notice: class { constructor(m) { avisos.push(String(m)); } },
       Platform: { isMobile: false, isPhone: false },
@@ -62,7 +62,8 @@ const el = () => ({
   getContext: () => contexto2D(),
   addEventListener() {},
 });
-const campo = () => { const o = {}; for (const k of ['setValue', 'onChange', 'setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'onClick', 'setTitle', 'setIcon', 'setChecked', 'setDisabled', 'setTooltip']) o[k] = () => o; o.inputEl = { type: '', rows: 0, addClass() {} }; return o; };
+const campo = () => { const o = {}; for (const k of ['setValue', 'onChange', 'setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'onClick', 'setIcon', 'setChecked', 'setDisabled', 'setTooltip']) o[k] = () => o;
+  o.setTitle = (v) => { o.titulo = v; return o; }; o.inputEl = { type: '', rows: 0, addClass() {} }; return o; };
 // Lienzo falso: cuenta las llamadas para saber que de verdad dibujó.
 const contexto2D = () => { const c = { llamadas: 0 }; const nada = () => { c.llamadas++; }; for (const k of ['beginPath', 'moveTo', 'lineTo', 'arc', 'fill', 'stroke', 'fillRect', 'strokeRect', 'setLineDash', 'bezierCurveTo', 'save', 'restore', 'translate', 'scale', 'clearRect', 'fillText', 'closePath', 'quadraticCurveTo',
     'setTransform', 'resetTransform', 'rotate', 'clip', 'rect', 'roundRect', 'arcTo', 'ellipse', 'drawImage', 'strokeText']) c[k] = nada; c.createLinearGradient = () => ({ addColorStop() {} }); c.createRadialGradient = () => ({ addColorStop() {} }); c.measureText = (t) => ({ width: String(t).length * 6 }); return c; };
