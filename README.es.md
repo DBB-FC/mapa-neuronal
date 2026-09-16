@@ -54,10 +54,27 @@ se escriba una línea en tu nota. La versión interactiva del diagrama está en
 
 ## Instalación
 
-Complementos de la comunidad → Explorar → buscar "Mapa neuronal" → Instalar → Activar.
+### Desde el directorio de la comunidad
 
-A mano: baja `main.js`, `manifest.json` y `styles.css` de la última release a
+Complementos de la comunidad → Explorar → buscar "Mapa neuronal" → Instalar → Activar.
+*(En revisión al momento de escribir esto — mientras tanto, cualquiera de las dos formas de abajo.)*
+
+### Con BRAT — se instala y se actualiza solo
+
+Es la forma habitual de instalar un plugin directo desde GitHub:
+
+1. Instala **Obsidian42 - BRAT** desde los complementos de la comunidad.
+2. Paleta de comandos → **BRAT: Add a beta plugin for testing**.
+3. Pega `DBB-Labs/mapa-neuronal`.
+
+BRAT lo instala, lo activa y lo actualiza con cada release nueva.
+
+### A mano
+
+Baja `main.js`, `manifest.json` y `styles.css` de la
+[última release](https://github.com/DBB-Labs/mapa-neuronal/releases/latest) a
 `<vault>/.obsidian/plugins/mapa-neuronal/` y actívalo en Complementos de la comunidad.
+No hace falta nada más: esos tres archivos son todo el plugin.
 
 Se abre con el comando **Abrir mapa neuronal** (`Cmd/Ctrl+P`) o el ícono de cerebro en
 la barra izquierda.

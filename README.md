@@ -54,11 +54,27 @@ open it in a browser.
 
 ## Install
 
-Community plugins → Browse → search "Mapa neuronal" → Install → Enable.
+### From the community directory
 
-Manual install: download `main.js`, `manifest.json` and `styles.css` from the latest
-release into `<vault>/.obsidian/plugins/mapa-neuronal/`, then enable it in
-Settings → Community plugins.
+Community plugins → Browse → search "Mapa neuronal" → Install → Enable.
+*(Pending review at the time of writing — use one of the two ways below meanwhile.)*
+
+### With BRAT — installs and keeps updating itself
+
+The usual way to install a plugin straight from GitHub:
+
+1. Install **Obsidian42 - BRAT** from the community plugins.
+2. Command palette → **BRAT: Add a beta plugin for testing**.
+3. Paste `DBB-Labs/mapa-neuronal`.
+
+BRAT installs it, enables it, and updates it on every release.
+
+### By hand
+
+Download `main.js`, `manifest.json` and `styles.css` from the
+[latest release](https://github.com/DBB-Labs/mapa-neuronal/releases/latest) into
+`<vault>/.obsidian/plugins/mapa-neuronal/`, then enable it in Settings → Community
+plugins. Nothing else is needed: those three files are the whole plugin.
 
 Open it with the command **Open neural map** (`Cmd/Ctrl+P`) or the brain icon in the
 left ribbon.
