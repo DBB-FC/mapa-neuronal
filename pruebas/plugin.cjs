@@ -157,7 +157,18 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   try { await pl2.llamarIA('s', 'u', esquema); } catch (e) { msgSinLlave = e.message; }
   p.cierto('sin llave avisa antes de salir a la red', /key is missing/i.test(msgSinLlave));
 
-  // ── 8. El asistente de capas propone algo sensato ────────────────────────────────────────────
+  // ── 8. El botón «Probar la conexión»: una llamada mínima, sin notas ──────────────────────────
+  app._ls = {}; app._ls[CLAVE_IA('claude')] = 'llave-de-prueba';
+  pl2.ajustes.proveedorIA = 'claude'; pl2.ajustes.modeloIA = 'claude-opus-5';
+  let cuerpoPrueba = null;
+  global.__req = (o) => { cuerpoPrueba = o.body; return { status: 200, json: { content: [{ type: 'text', text: '{"ok":true}' }] } }; };
+  const prueba = await pl2.llamarIA('Responde solo con JSON.', 'Devuelve exactamente {"ok": true}.',
+    { type: 'object', additionalProperties: false, required: ['ok'], properties: { ok: { type: 'boolean' } } });
+  p.igual('la prueba de conexión devuelve ok', prueba, { ok: true });
+  p.cierto('la prueba no manda ninguna nota', !/tostadora|ana-soto|Encargada/i.test(cuerpoPrueba));
+  p.cierto('la prueba es corta (menos de 400 caracteres)', cuerpoPrueba.length < 400);
+
+  // ── 9. El asistente de capas propone algo sensato ────────────────────────────────────────────
   const filas = detectarCarpetas(app);
   const capaDe = (c) => (filas.find((f) => f.carpeta === c) || {}).capa;
   p.igual('manda el diario a la primera capa', capaDe('diario'), 0);

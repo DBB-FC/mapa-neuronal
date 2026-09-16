@@ -110,6 +110,10 @@ needs no key and no internet.
 Reasons and summaries are written **in the language of your notes**, not in the language of
 the interface.
 
+Setting it up is four fields: pick the provider, paste your key, choose the model, and press
+**Test the connection** — one tiny call that tells you whether it answers, without sending
+any note. The key is stored on this device only.
+
 Three rules the plugin enforces, whatever provider you pick:
 
 1. **Quotes are verified by code.** The model must return a literal quote from each of

@@ -108,6 +108,10 @@ necesita llave ni internet.
 Los motivos y los resúmenes se escriben **en el idioma de tus notas**, no en el idioma de
 la interfaz.
 
+Configurarla son cuatro campos: eliges el proveedor, pegas tu llave, eliges el modelo y
+aprietas **Probar la conexión** — una llamada mínima que te dice si responde, sin enviar
+ninguna nota. La llave queda solo en ese dispositivo.
+
 Tres reglas que el plugin impone con cualquier proveedor:
 
 1. **Las citas las verifica el código.** El modelo tiene que devolver una cita literal de

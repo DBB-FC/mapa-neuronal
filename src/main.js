@@ -270,6 +270,14 @@ const EN = {
   'Propiedad de fecha de modificación': 'Last-modified property',
   'Si la escribes, al aprobar un motivo se pone la fecha de hoy en esa propiedad de la nota. Vacío = el plugin no toca el frontmatter.':
     'If set, approving a reason writes today’s date in that property of the note. Empty = the plugin never touches the frontmatter.',
+  'Llave guardada en este dispositivo': 'Key stored on this device',
+  'Probar la conexión': 'Test the connection',
+  'Hace una llamada mínima —unos pocos tokens— y te dice si tu IA responde. Ninguna nota se envía.':
+    'Makes one tiny call — a few tokens — and tells you whether your AI answers. No note is sent.',
+  'Probar': 'Test',
+  'Probando…': 'Testing…',
+  'Funciona: {0} respondió.': 'It works: {0} answered.',
+  '{0} respondió algo inesperado. Prueba con otro modelo.': '{0} answered something unexpected. Try another model.',
   // proveedores
   'Crea la llave en console.anthropic.com, sección API keys.': 'Create the key at console.anthropic.com, API keys section.',
   'claude-opus-5 es el más preciso (97,7 % en nuestra prueba). claude-sonnet-5 y claude-haiku-4-5 son más baratos.':
@@ -1426,7 +1434,9 @@ class AjustesMapa extends PluginSettingTab {
       .addDropdown((d) => d.addOptions(Object.fromEntries(Object.entries(PROVEEDORES).map(([k, v]) => [k, v.nombre]))).setValue(prov)
         .onChange(async (v) => { p.ajustes.proveedorIA = v; p.ajustes.modeloIA = PROVEEDORES[v].modelo; await p.guardar(); this.display(); }));
     if (def.llave) new Setting(c).setName(T('Llave de la API')).setDesc(p.app.loadLocalStorage(CLAVE_IA(prov)) ? T('Guardada en este dispositivo. ') + T(def.ayuda) : T(def.ayuda))
-      .addText((t) => { t.inputEl.type = 'password'; t.setPlaceholder(p.app.loadLocalStorage(CLAVE_IA(prov)) ? T('guardada') : T('pega la llave aquí')); t.onChange((v) => { p.app.saveLocalStorage(CLAVE_IA(prov), v.trim() || null); }); })
+      .addText((t) => { t.inputEl.type = 'password';
+        // Pegar una llave y no ver nada deja la duda de si quedó guardada: al salir del campo, se dice.
+        this.registerDomEvent(t.inputEl, 'blur', () => { if (p.app.loadLocalStorage(CLAVE_IA(prov))) new Notice(T('Llave guardada en este dispositivo')); }); t.setPlaceholder(p.app.loadLocalStorage(CLAVE_IA(prov)) ? T('guardada') : T('pega la llave aquí')); t.onChange((v) => { p.app.saveLocalStorage(CLAVE_IA(prov), v.trim() || null); }); })
       .addButton((b) => b.setButtonText(T('Borrar')).onClick(() => { p.app.saveLocalStorage(CLAVE_IA(prov), null); this.display(); new Notice(T('Llave borrada de este dispositivo')); }));
     else new Setting(c).setName(T('Sin llave')).setDesc(T(def.ayuda));
     if (prov === 'local') new Setting(c).setName(T('Dirección del servidor local')).setDesc(T('Compatible con OpenAI. Ollama usa http://localhost:11434/v1/chat/completions.'))
@@ -1436,6 +1446,18 @@ class AjustesMapa extends PluginSettingTab {
     else new Setting(c).setName(T('Modelo')).setDesc(T(def.modeloAyuda))
       .addText((t) => t.setPlaceholder(T('nombre del modelo')).setValue(p.ajustes.modeloIA).onChange(async (v) => { p.ajustes.modeloIA = v.trim(); await p.guardar(); }));
     c.createEl('p', { cls: 'setting-item-description', text: T('La calidad de los motivos se midió con Claude Opus 5: 97,7 % correctos y 0 inventados sobre 50 conexiones. Con otros modelos los candados siguen puestos (citas verificadas y tu aprobación), pero la precisión no está medida.') });
+    new Setting(c).setName(T('Probar la conexión')).setDesc(T('Hace una llamada mínima —unos pocos tokens— y te dice si tu IA responde. Ninguna nota se envía.'))
+      .addButton((b) => b.setButtonText(T('Probar')).onClick(async () => {
+        b.setButtonText(T('Probando…')).setDisabled(true);
+        try {
+          const r = await p.llamarIA('Responde solo con JSON.', 'Devuelve exactamente {"ok": true}.',
+            { type: 'object', additionalProperties: false, required: ['ok'], properties: { ok: { type: 'boolean' } } });
+          new Notice(r && r.ok === true
+            ? T('Funciona: {0} respondió.', p.ajustes.modeloIA || def.nombre)
+            : T('{0} respondió algo inesperado. Prueba con otro modelo.', def.nombre), 8000);
+        } catch (e) { new Notice(e.message, 10000); }
+        b.setButtonText(T('Probar')).setDisabled(false);
+      }));
     new Setting(c).setName(T('Segunda revisión')).setDesc(T('Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.'))
       .addToggle((t) => t.setValue(p.ajustes.dobleVerificacion).onChange(async (v) => { p.ajustes.dobleVerificacion = v; await p.guardar(); }));
     new Setting(c).setName(T('Carpeta del registro de aprobaciones')).setDesc(T('Cada motivo aprobado deja constancia (fecha, citas, modelo) en <carpeta>/<fecha>/mapa-neuronal-motivos.md.'))
