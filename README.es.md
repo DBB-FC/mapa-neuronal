@@ -68,6 +68,8 @@ la barra izquierda.
    (Entrada / Entidades / Conocimiento / Temas / No mostrar). Corrige lo que se vea mal
    y presiona Aplicar.
 
+   ![El asistente del primer uso: cada carpeta con una capa propuesta](docs/imagenes/02-asistente.webp)
+
 2. Toca cualquier nota. El panel lateral nombra su capa, su tema, un resumen de dos
    líneas y todos sus enlaces con su motivo.
 
@@ -82,6 +84,11 @@ la barra izquierda.
    ![El panel de vacíos: pares de temas que deberían estar conectados](docs/imagenes/04-vacios.webp)
 
 Eso es todo. No hay que configurar nada más, y nada de lo anterior necesita una llave de IA.
+
+El resto vive en el menú de herramientas — la ficha `⋯ herramientas` del mapa, o el `···`
+de la pestaña:
+
+![El menú de herramientas: caminos, radial, vacíos, modo salud, colapsar temas, actividad reciente y exportar](docs/imagenes/07-herramientas.webp)
 
 ## Ajustes que vale la pena conocer
 

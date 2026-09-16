@@ -69,6 +69,8 @@ left ribbon.
    (Input / Entities / Knowledge / Topics / Don't show). Change what looks wrong and
    press Apply.
 
+   ![The first-run wizard: every folder with a proposed layer](docs/imagenes/02-asistente.webp)
+
 2. Click any note. The side panel names its layer, its topic, a two-line summary and
    every link with its reason.
 
@@ -84,6 +86,11 @@ left ribbon.
 
 That's it. No configuration needed beyond the wizard, and no AI key required for any of
 the above.
+
+Everything else lives in the tools menu — the `⋯ tools` chip on the map, or the tab's own
+`···` menu:
+
+![The tools menu: paths, radial view, gaps, health mode, collapsing topics, recent activity and export](docs/imagenes/07-herramientas.webp)
 
 ## Settings worth knowing
 
