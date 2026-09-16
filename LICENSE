@@ -1,80 +1,21 @@
-Mapa neuronal — Licencia de uso
-Copyright (c) 2026 Felipe Córdova / DBB Labs. Todos los derechos reservados.
+MIT License
 
-BORRADOR PARA REVISIÓN LEGAL. Este texto expresa la intención comercial del autor
-y no ha sido revisado por un abogado. No lo publiques como licencia definitiva sin
-esa revisión.
+Copyright (c) 2026 Felipe Córdova
 
-VERSIÓN VINCULANTE. Hay una traducción al inglés en `LICENSE.en.md`, solo para
-facilitar la lectura. Si las dos difieren, manda esta, en español.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Este software es de código visible (source-available), no de código abierto. Puedes
-leer el código, auditarlo y compilarlo para verificar qué hace. Eso no te otorga los
-derechos que sí otorgan las licencias de código abierto.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-1. LO QUE SÍ PUEDES HACER, SIN PAGAR NADA
-
-   a) Instalar y usar el plugin en tu propio vault de Obsidian, en tus propios
-      dispositivos, para tus notas personales o de estudio.
-   b) Leer, compilar y modificar el código para tu uso personal.
-   c) Enviar propuestas de cambios (pull requests) al repositorio oficial.
-   d) Citar fragmentos del código en artículos, charlas o clases, indicando la fuente.
-
-2. LO QUE REQUIERE UNA LICENCIA COMERCIAL ("Pro")
-
-   a) Usar el plugin dentro de una empresa, organización, institución o cualquier
-      entidad con fines de lucro, incluido el uso por parte de una sola persona
-      cuando ese uso es parte de su trabajo remunerado.
-   b) Usar el plugin para prestar servicios a terceros (consultoría, auditoría de
-      conocimiento, gestión documental).
-   c) Instalarlo en vaults compartidos por más de una persona.
-   d) Cualquier uso por parte de un equipo, sin importar su tamaño.
-
-   La licencia Pro se solicita escribiendo a licencias@dontbuybuild.cl.
-   Mientras no exista un canal de compra publicado, el autor otorga una licencia
-   Pro gratuita y temporal a quien la solicite por escrito. Esa licencia temporal
-   no crea derecho a renovación.
-
-3. LO QUE NO PUEDES HACER NUNCA, CON O SIN LICENCIA PRO
-
-   a) Redistribuir el plugin, compilado o en código, por tu cuenta: ni en otra
-      tienda, ni en otro repositorio, ni dentro de otro producto.
-   b) Publicar una versión derivada, renombrada o "fork" de uso público.
-   c) Vender, sublicenciar, alquilar o incluir el software en un servicio de pago
-      que no sea del autor.
-   d) Quitar, ocultar o alterar los avisos de copyright, licencia o autoría.
-   e) Usar el nombre "Mapa neuronal", "DBB Labs" o el nombre del autor para
-      promocionar un producto derivado.
-
-4. INTELIGENCIA ARTIFICIAL Y DATOS
-
-   El plugin puede enviar el contenido de tus notas al proveedor de IA que tú
-   configures (Anthropic, OpenAI, Google o un servidor propio). Esa comunicación es
-   entre tú y ese proveedor, con tu propia llave y a tu propio costo. El autor no
-   recibe, almacena ni ve tus notas, tus llaves ni tus consultas, y no es parte de
-   tu relación con el proveedor de IA. Si el proveedor cobra, cambia sus precios,
-   pierde tus datos o cierra, eso está fuera del alcance de esta licencia.
-
-5. SIN GARANTÍA
-
-   EL SOFTWARE SE ENTREGA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O
-   IMPLÍCITA, INCLUIDAS LAS DE COMERCIABILIDAD, IDONEIDAD PARA UN FIN DETERMINADO Y
-   NO INFRACCIÓN. EL AUTOR NO RESPONDE POR NINGÚN DAÑO, PÉRDIDA DE DATOS, COSTO DE
-   API NI LUCRO CESANTE DERIVADO DEL USO O LA IMPOSIBILIDAD DE USO DEL SOFTWARE.
-
-   El plugin escribe en tus notas solo cuando tú apruebas un cambio, y nunca en
-   archivos de `raw/` u otras carpetas que marques como fuentes. Aun así, mantén
-   respaldos: la responsabilidad del contenido de tu vault es tuya.
-
-6. VIGENCIA Y TÉRMINO
-
-   Esta licencia se termina automáticamente si incumples cualquiera de sus
-   condiciones. Al terminar, debes desinstalar el software y destruir las copias que
-   tengas. Las secciones 3, 4 y 5 siguen vigentes después del término.
-
-7. LEY APLICABLE
-
-   Esta licencia se rige por las leyes de la República de Chile. Cualquier
-   controversia se someterá a los tribunales ordinarios de Santiago de Chile.
-
-Preguntas sobre la licencia: licencias@dontbuybuild.cl.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -177,7 +177,7 @@ El panel, las fichas y los ajustes siguen tu tema.
 
 ## Construir desde el código
 
-La licencia es de código visible: puedes leer y compilar exactamente lo que corre.
+Todo sale de `src/`; el release es una sola pasada de esbuild, sin minificar.
 
 ```bash
 npm install
@@ -192,13 +192,12 @@ así que el archivo publicado sigue siendo legible.
 
 ## Licencia
 
-En el directorio de Obsidian queda etiquetado como **pagos opcionales**: funciona completo
-sin pagar para uso personal, y puede conectarse a servicios de IA de pago con tu propia llave.
+[MIT](LICENSE). Gratis para cualquier uso —personal o comercial— y puedes forkearlo,
+modificarlo y redistribuirlo, conservando el aviso de autoría.
 
-Código visible, no código abierto. Gratis para uso personal; se requiere licencia Pro
-para usarlo dentro de una empresa o para prestar servicios a terceros. Ver [LICENSE](LICENSE)
-(en español, la que manda) o su [traducción al inglés](LICENSE.en.md).
-Licencias Pro y consultas: licencias@dontbuybuild.cl.
+El plugin no cobra nada y no tiene versión de pago. El directorio de Obsidian igual lo
+etiqueta como **pagos opcionales**, porque puede conectarse a servicios de IA que te
+cobran a ti con tu propia llave; el proveedor local (Ollama, LM Studio) no cuesta nada.
 
 ## Soporte
 

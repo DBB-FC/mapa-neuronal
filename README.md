@@ -179,7 +179,7 @@ chips and the settings follow your theme.
 
 ## Build from source
 
-The licence is source-available: you can read and compile exactly what runs.
+Everything runs from `src/`; the release is one esbuild pass, unminified.
 
 ```bash
 npm install
@@ -194,13 +194,12 @@ the released file stays readable.
 
 ## Licence
 
-In the Obsidian directory this plugin is labelled **optional payments**: it works fully
-for personal use with no payment, and it can connect to paid AI services with your own key.
+[MIT](LICENSE). Free for anything — personal or commercial — and you may fork it, change
+it and redistribute it, keeping the copyright notice.
 
-Source-available, not open source. Free for personal use; a Pro licence is required for
-use inside a company or to provide services to third parties. See [LICENSE](LICENSE)
-(Spanish, binding) or its [English translation](LICENSE.en.md).
-Pro licences and licensing questions: licencias@dontbuybuild.cl.
+The plugin itself charges nothing and has no paid tier. The Obsidian directory still
+labels it **optional payments**, because it can connect to AI services that charge you
+directly with your own key; the local provider (Ollama, LM Studio) costs nothing at all.
 
 ## Support
 

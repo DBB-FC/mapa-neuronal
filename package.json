@@ -16,8 +16,8 @@
     "graph",
     "knowledge-management"
   ],
-  "author": "Felipe Córdova <licencias@dontbuybuild.cl>",
-  "license": "SEE LICENSE IN LICENSE",
+  "author": "Felipe Córdova",
+  "license": "MIT",
   "devDependencies": {
     "esbuild": "0.25.10",
     "eslint": "^9.39.5",
