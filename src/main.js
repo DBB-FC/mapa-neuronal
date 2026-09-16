@@ -1478,10 +1478,11 @@ class AjustesMapa extends PluginSettingTab {
       .addButton((b) => b.setButtonText(T('Restablecer')).onClick(async () => { p.ajustes = Object.assign({}, AJUSTES_BASE); await p.guardar(); this.display(); }));
     c.createEl('p', { cls: 'setting-item-description', text: T('Restablecer no borra la llave guardada en este dispositivo.') });
     const pie = c.createEl('p', { cls: 'mn-pie' });
-    pie.appendText(`Mapa neuronal ${p.manifest?.version || ''} · `);
+    pie.appendText(`Mapa neuronal ${p.manifest?.version || ''} · Powered by`);
     // El nombre de la marca va en una constante: la regla de mayúsculas del linter revisa
     // los textos escritos a mano y no puede saber que «DBB Labs» es un nombre propio.
-    pie.createEl('a', { href: 'https://dontbuybuild.cl' }).setText(`Powered by ${MARCA}`);
+    const enlace = pie.createEl('a', { href: 'https://dontbuybuild.cl', attr: { 'aria-label': `Powered by ${MARCA}` } });
+    enlace.createSpan({ cls: 'mn-marca-dbb' });
   }
   hide() { this.plugin.refrescarVistas(); }
 }

@@ -223,4 +223,11 @@ number of notes and links the map header shows.
 
 ---
 
+<a href="https://dontbuybuild.cl">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/imagenes/dbb-labs-oscuro.svg">
+    <img alt="DBB Labs" src="docs/imagenes/dbb-labs-claro.svg" height="24">
+  </picture>
+</a>
+
 Built by **Felipe Córdova** · Powered by [DBB Labs](https://dontbuybuild.cl) — *Don't buy. Build.*
