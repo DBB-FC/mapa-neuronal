@@ -218,3 +218,7 @@ cobran a ti con tu propia llave; el proveedor local (Ollama, LM Studio) no cuest
 
 Errores e ideas: issues de GitHub. Incluye tu versión de Obsidian, tu plataforma y la
 cantidad de notas y enlaces que muestra el encabezado del mapa.
+
+---
+
+Hecho por **Felipe Córdova** · Powered by [DBB Labs](https://dontbuybuild.cl) — *No compres. Construye.*

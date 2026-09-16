@@ -220,3 +220,7 @@ directly with your own key; the local provider (Ollama, LM Studio) costs nothing
 
 Bugs and ideas: GitHub issues. Include your Obsidian version, your platform, and the
 number of notes and links the map header shows.
+
+---
+
+Built by **Felipe Córdova** · Powered by [DBB Labs](https://dontbuybuild.cl) — *Don't buy. Build.*

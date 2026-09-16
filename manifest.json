@@ -1,9 +1,10 @@
 {
   "id": "mapa-neuronal",
   "name": "Mapa neuronal",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "minAppVersion": "1.8.7",
   "description": "Shows your vault as a layered neural network, explains why each note connects, and suggests reasons with your own AI — always with verified quotes and your approval.",
   "author": "Felipe Córdova",
+  "authorUrl": "https://dontbuybuild.cl",
   "isDesktopOnly": false
 }

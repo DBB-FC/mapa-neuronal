@@ -17,7 +17,7 @@ function obsidianSimulado() {
     avisos,
     modulo: {
       Plugin: class extends Componente {
-        constructor() { super(); this.comandos = []; this.vistas = []; this.ribbon = []; this.pestanas = []; this._datos = null; }
+        constructor() { super(); this.comandos = []; this.vistas = []; this.ribbon = []; this.pestanas = []; this._datos = null; this.manifest = { id: 'mapa-neuronal', version: '0.0.0-prueba' }; }
         registerView(tipo, fn) { this.vistas.push([tipo, fn]); }
         addSettingTab(t) { this.pestanas.push(t); }
         addRibbonIcon(icono, titulo, fn) { this.ribbon.push([icono, titulo, fn]); return { addClass() {} }; }

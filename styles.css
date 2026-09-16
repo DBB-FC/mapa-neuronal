@@ -102,3 +102,8 @@
 /* v1.7 */
 .mn-resumen2.mn-extraido { color: rgba(230,234,255,.85); }
 .mn-asistente p { color: var(--text-muted); }
+
+/* Pie de los ajustes: versión y marca, sin robar atención. */
+.mn-pie { margin-top: 18px; font: 11.5px var(--font-interface); color: var(--text-faint); }
+.mn-pie a { color: var(--text-muted); text-decoration: none; }
+.mn-pie a:hover { color: var(--text-accent); text-decoration: underline; }

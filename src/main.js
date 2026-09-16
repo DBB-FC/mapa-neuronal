@@ -1476,6 +1476,10 @@ class AjustesMapa extends PluginSettingTab {
     new Setting(c).setName(T('Restablecer')).setDesc(T('Vuelve a los valores por defecto.'))
       .addButton((b) => b.setButtonText(T('Restablecer')).onClick(async () => { p.ajustes = Object.assign({}, AJUSTES_BASE); await p.guardar(); this.display(); }));
     c.createEl('p', { cls: 'setting-item-description', text: T('Restablecer no borra la llave guardada en este dispositivo.') });
+    const pie = c.createEl('p', { cls: 'mn-pie' });
+    pie.appendText(`Mapa neuronal ${p.manifest?.version || ''} · `);
+    // eslint-disable-next-line obsidianmd/ui/sentence-case -- «DBB Labs» es un nombre propio
+    pie.createEl('a', { text: 'Powered by DBB Labs', href: 'https://dontbuybuild.cl' });
   }
   hide() { this.plugin.refrescarVistas(); }
 }

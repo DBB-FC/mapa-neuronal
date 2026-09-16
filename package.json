@@ -1,6 +1,6 @@
 {
   "name": "mapa-neuronal",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "Obsidian plugin: see your vault as a layered neural network and read why each note connects.",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "graph",
     "knowledge-management"
   ],
-  "author": "Felipe Córdova",
+  "author": "Felipe Córdova (DBB Labs)",
   "license": "MIT",
   "devDependencies": {
     "esbuild": "0.25.10",
@@ -24,5 +24,6 @@
     "eslint-plugin-obsidianmd": "^0.4.2",
     "globals": "^17.12.0",
     "typescript-eslint": "^8.70.0"
-  }
+  },
+  "homepage": "https://dontbuybuild.cl"
 }
