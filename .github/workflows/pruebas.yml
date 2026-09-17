@@ -1,0 +1,28 @@
+# Corre el linter y las pruebas en cada rama y en cada pull request. Antes solo corrían al publicar
+# un tag: una rama podía romper el mapa y nadie lo veía hasta el release.
+name: Pruebas
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Instalar dependencias
+        run: npm ci || npm install
+      - name: Linter oficial de Obsidian
+        run: npx eslint src/
+      - name: Construir y probar (mapa, fuentes, escritura, IA, idioma)
+        # Sin «|| true»: si una prueba falla, el flujo falla. La de interfaz necesita Chrome y se
+        # salta sola donde no hay; las demás son obligatorias.
+        run: npm test

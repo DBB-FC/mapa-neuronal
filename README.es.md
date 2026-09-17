@@ -244,6 +244,8 @@ navegador.
 | **Carpetas** | Qué carpeta va a qué capa. El asistente lo escribe por ti. |
 | **Propiedad de tema** | La propiedad del frontmatter que agrupa y colorea las notas (por defecto `tema`). Vacío = sin temas. |
 | **Notas visibles por capa** | En vaults grandes cada capa muestra sus notas más conectadas; el resto aparece al buscarlas o abrirlas. Por defecto 150. |
+| **Carpetas de fuentes** | Una por línea. Si tus notas citan archivos por su ruta (`raw/articles/algo.md`, un PDF, una carpeta de un día), esos archivos aparecen como fuentes. `carpeta/*` agrupa cada subcarpeta en un nodo. Vacío por defecto: sin carpetas, el mapa es el de siempre. |
+| **Mostrar fuentes citadas** | `Bajo demanda`: las fuentes aparecen al tocar la nota que las cita y se van con ella. `Todas`: siempre en la primera capa. `No mostrar`. Quien ya las tenía encendidas sigue en `Todas`. |
 | **Sección de conexiones** | El título al final de cada nota donde se escriben los motivos aprobados. |
 | **Propiedad de enlaces externos** | Propiedades del frontmatter con enlaces web (`Título \| https://…`, `https://…`, `usuario/repo`). Vacío = la sección no aparece nunca. Solo se abren `http`/`https`. |
 | **Propiedad de fecha de modificación** | Si la escribes, aprobar un motivo o un resumen también pone la fecha de hoy en esa propiedad. Vacía por defecto: el plugin no toca tu frontmatter. |
@@ -309,6 +311,27 @@ así que puedes verificar que se construyeron desde este código:
 ```bash
 gh attestation verify main.js --repo DBB-FC/why-graph
 ```
+
+</details>
+
+<details>
+<summary><b>Fuentes: de dónde salió cada nota</b></summary>
+
+Con cualquier vault ves el mapa. Si además tus notas citan sus fuentes por ruta —como hace un
+LLM wiki, con sus fuentes crudas en una carpeta— el mapa ve también de dónde salió cada cosa:
+
+- **Bajo demanda.** Tocas una nota y aparecen a su lado los archivos que cita; tocas otra y
+  cambian. La primera capa no crece con cada captura.
+- **La ficha de una fuente** abre el archivo original, lista qué notas la citan y salta a la línea
+  exacta de la cita.
+- **Referencia rota.** Una nota que cita un archivo que no existe se ve en rojo en modo salud.
+- **Fuentes sin vínculo.** En «⋯ herramientas», una lista de los archivos de tus carpetas de
+  fuentes que ninguna nota del mapa cita, con el contador «citadas: X de Y» y su alcance. Dice solo
+  eso: no dice si los procesaste. El significado se lo da tu flujo, no el plugin.
+- **El buscador** encuentra fuentes, notas ocultas y miembros de temas colapsados.
+
+Una cita es una ruta explícita: entre acentos graves, en un `[[wikilink]]`, en un enlace, o suelta
+hasta el primer espacio. Citar una carpeta no equivale a citar cada archivo que contiene.
 
 </details>
 

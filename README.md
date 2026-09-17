@@ -244,6 +244,8 @@ in a browser.
 | **Folders** | Which folder goes to which layer. The wizard writes this for you. |
 | **Topic property** | The frontmatter property that groups and colours notes (default `tema`). Empty = no topics. |
 | **Notes visible per layer** | In large vaults each layer shows its most connected notes; the rest appear when you search or open them. Default 150. |
+| **Source folders** | One per line. If your notes cite files by path (`raw/articles/x.md`, a PDF, a day's folder), those files appear as sources. `folder/*` groups each subfolder into one node. Empty by default: with no folders, the map is the one you know. |
+| **Show cited sources** | `On demand`: sources appear when you tap the note that cites them and leave with it. `All`: always in the first layer. `Do not show`. If you already had them on, you stay on `All`. |
 | **Connections section** | The heading at the end of each note where approved reasons are written. |
 | **External links property** | Frontmatter properties holding web links (`Title \| https://…`, `https://…`, `user/repo`). Empty = the section never appears. Only `http`/`https` are opened. |
 | **Last-modified property** | If set, approving a reason or a summary also writes today's date in that property. Empty by default: the plugin never touches your frontmatter. |
@@ -309,6 +311,27 @@ you can verify they were built from this source:
 ```bash
 gh attestation verify main.js --repo DBB-FC/why-graph
 ```
+
+</details>
+
+<details>
+<summary><b>Sources: where each note came from</b></summary>
+
+With any vault you see the map. If your notes also cite their sources by path — as an LLM wiki
+does, with its raw sources in a folder — the map also shows where each thing came from:
+
+- **On demand.** Tap a note and the files it cites appear next to it; tap another and they change.
+  The first layer stops growing with every clipping.
+- **A source's card** opens the original file, lists which notes cite it, and jumps to the exact
+  line of the citation.
+- **Broken reference.** A note citing a file that does not exist shows in red in health mode.
+- **Unlinked sources.** Under "⋯ tools", a list of the files in your source folders that no note
+  on the map cites, with the counter "cited: X of Y" and its scope. It says only that: not
+  whether you processed them. Your workflow gives it meaning, not the plugin.
+- **Search** finds sources, hidden notes and members of collapsed topics.
+
+A citation is an explicit path: in backticks, in a `[[wikilink]]`, in a link, or bare up to the
+first space. Citing a folder is not the same as citing every file inside it.
 
 </details>
 

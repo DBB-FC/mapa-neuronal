@@ -4,6 +4,10 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.27 (17.09.2026): fuentes por carpetas configurables y bajo demanda. Rutas con tildes y espacios;
+ *   ficha de fuente con Abrir, «citada por» y salto a la cita; referencias rotas en salud; buscador
+ *   sobre el índice completo; bandeja «fuentes sin vínculo» con contador. Nada de esto asume raw/:
+ *   sin carpetas configuradas, el mapa es el de siempre. El interruptor viejo migra a «todas».
  * v1.0 (15.09.2026): el mapa por capas dentro de Obsidian, en vivo y táctil.
  * v1.9 (15.09.2026): interfaz en inglés y español, según el idioma de Obsidian (getLanguage()); los
  *   textos del código están en español y EN los traduce. Una prueba verifica que ninguno quede sin traducir.
@@ -197,7 +201,28 @@ const EN = {
   'Propiedad de tema': 'Topic property',
   'Propiedad del frontmatter que agrupa y colorea las notas. Vacío = sin temas.': 'The frontmatter property that groups and colours notes. Empty = no topics.',
   'Mostrar fuentes citadas': 'Show cited sources',
-  'Agrega a la primera capa los archivos de raw/ que las notas citan.': 'Adds the files from raw/ that your notes cite to the first layer.',
+  'Las fuentes son los archivos de esas carpetas que tus notas citan por su ruta. «Bajo demanda»: aparecen al tocar la nota que las cita. «Todas»: siempre en la primera capa.': 'Sources are the files in those folders that your notes cite by path. "On demand": they appear when you tap the note that cites them. "All": always in the first layer.',
+  'Bajo demanda': 'On demand',
+  'Todas': 'All',
+  'Carpetas de fuentes': 'Source folders',
+  'Una por línea. «carpeta» cuenta cada archivo; «carpeta/*» agrupa cada subcarpeta en un nodo (por ejemplo, un día). Vacío = sin fuentes.': 'One per line. "folder" counts each file; "folder/*" groups each subfolder into one node (a day, for example). Empty = no sources.',
+  'Fuentes sin vínculo': 'Unlinked sources',
+  'Fuentes sin vínculo · {0}': 'Unlinked sources · {0}',
+  'Archivos de las carpetas de fuentes que ninguna nota del mapa cita por su ruta. Solo dice eso: no dice si se procesaron.': 'Files in the source folders that no note on the map cites by path. That is all it says: not whether they were processed.',
+  'Fuentes citadas: {0} de {1}': 'Cited sources: {0} of {1}',
+  'Todas las fuentes tienen vínculo.': 'Every source is linked.',
+  'citada solo por una nota fuera del mapa': 'cited only by a note outside the map',
+  'referencia rota: el archivo no existe': 'broken reference: the file does not exist',
+  'Citada por': 'Cited by',
+  'notas que citan esta fuente por su ruta': 'notes that cite this source by path',
+  'Carpeta citada: no equivale a citar cada archivo que contiene.': 'Cited folder: not the same as citing every file inside it.',
+  'Ir a la cita': 'Go to the citation',
+  'línea {0}': 'line {0}',
+  'Archivo no encontrado: {0}': 'File not found: {0}',
+  'Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo · {3} referencia(s) rota(s) · {4} fuente(s) sin vínculo': 'Health: {0} orphan(s) · {1} without topic · {2} link(s) without reason · {3} broken reference(s) · {4} unlinked source(s)',
+  'Fuentes citadas por ruta': 'Sources cited by path',
+  'Detecté un LLM wiki (index.md y log.md con entradas fechadas): las carpetas marcadas como fuentes se mostrarán bajo demanda.': 'An LLM wiki was detected (index.md and log.md with dated entries): the folders marked as sources will show on demand.',
+  '{0} archivo(s)': '{0} file(s)',
   'Notas visibles por capa': 'Notes visible per layer',
   'En vaults grandes, cada capa muestra sus notas más conectadas. Las demás aparecen al buscarlas o al tocarlas desde el panel.':
     'In large vaults each layer shows its most connected notes. The rest appear when you search for them or open them from the panel.',
@@ -348,7 +373,8 @@ const AJUSTES_BASE = {
   propiedadTema: 'tema',
   temas: '',
   excluir: '',
-  fuentes: false,
+  fuentes: 'demanda', // 'no' | 'demanda' | 'todas'. Antes era booleano: se migra al cargar.
+  carpetasFuentes: '',
   seguirActiva: true,
   carpetaExport: 'Mapa neuronal',
   animacion: true,
@@ -371,7 +397,54 @@ const PROVEEDORES = {
   gemini: { nombre: 'Google Gemini', url: 'https://generativelanguage.googleapis.com/v1beta/models', llave: true, ayuda: 'Crea la llave en aistudio.google.com. Tiene una capa gratuita con límites de uso.', modeloAyuda: 'Escribe el identificador del modelo, como aparece en la documentación de Gemini.', modelo: '' },
   local: { nombre: 'IA local (Ollama, LM Studio)', url: 'http://localhost:11434/v1/chat/completions', llave: false, ayuda: 'Gratis y sin enviar tus notas a internet. Necesitas Ollama o LM Studio corriendo en este computador. No funciona en el celular.', modeloAyuda: 'El nombre del modelo que descargaste, por ejemplo el que muestra «ollama list».', modelo: '' },
 };
-const RAW = /raw\/(articles\/[\w\-.]+\.(?:md|pdf)|daily\/\d{4}-\d{2}-\d{2})/g;
+// Fuentes: rutas explícitas a archivos de las carpetas configuradas. Se aceptan tildes y espacios
+// cuando la ruta va entre acentos graves, en un [[wikilink]] o en un enlace (…); suelta en el texto,
+// solo hasta el primer espacio. Texto que se parece a una ruta pero no resuelve a un archivo o
+// carpeta del vault es una referencia rota, no una cita.
+function carpetasFuentesDe(s) {
+  return String(s.carpetasFuentes || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+    const grupo = l.endsWith('/*'); const ruta = (grupo ? l.slice(0, -2) : l).replace(/^\/+|\/+$/g, '');
+    return ruta ? { ruta, grupo } : null;
+  }).filter(Boolean);
+}
+function citasDe(texto, carpetas) {
+  if (!carpetas.length) return [];
+  const esc = carpetas.map((c) => c.ruta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const out = [], vistas = new Set();
+  // Un comodín, un marcador («<fecha>») o llaves no son una ruta: son texto que habla de rutas.
+  const agregar = (ruta, linea) => { ruta = ruta.replace(/[.,;:!?)]+$/, '').replace(/\/+$/, ''); if (/[*<>{}]/.test(ruta)) return; if (!vistas.has(ruta)) { vistas.add(ruta); out.push({ ruta, linea }); } };
+  const lineas = texto.split('\n');
+  const envuelta = new RegExp('(?:`([^`]+)`|\\[\\[([^\\]|#]+)(?:[|#][^\\]]*)?\\]\\]|\\]\\(([^)\\s]+)\\))', 'g');
+  const suelta = new RegExp('(?:^|[^\\w/])((?:' + esc + ')/[^\\s`"\'<>|\\[\\]()]+)', 'g');
+  const dentro = new RegExp('^(?:' + esc + ')/');
+  lineas.forEach((l, i) => {
+    for (const m of l.matchAll(envuelta)) { const r = (m[1] || m[2] || m[3] || '').trim(); if (dentro.test(r)) agregar(r, i + 1); }
+    // Lo envuelto ya se leyó entero: se borra antes de buscar rutas sueltas, o «`a b.md`» daría también «a».
+    for (const m of l.replace(envuelta, ' ').matchAll(suelta)) agregar(m[1], i + 1);
+  });
+  return out;
+}
+// Con «carpeta/*», una cita a cualquier cosa dentro de una subcarpeta se agrupa en esa subcarpeta.
+function nodoFuenteDe(ruta, carpetas) {
+  for (const c of carpetas) {
+    if (ruta !== c.ruta && !ruta.startsWith(c.ruta + '/')) continue;
+    if (!c.grupo) return { ruta, titulo: ruta.slice(c.ruta.length + 1) || ruta, carpeta: c };
+    const sub = ruta.slice(c.ruta.length + 1).split('/')[0];
+    return sub ? { ruta: c.ruta + '/' + sub, titulo: sub, carpeta: c, grupo: true } : null;
+  }
+  return null;
+}
+// Inventario: qué archivos (o subcarpetas, con «/*») hay en cada carpeta de fuentes.
+function inventarioFuentes(app, carpetas) {
+  const todos = (app.vault.getFiles ? app.vault.getFiles() : app.vault.getMarkdownFiles()).map((f) => f.path);
+  const items = [];
+  for (const c of carpetas) {
+    const dentro = todos.filter((r) => r.startsWith(c.ruta + '/'));
+    if (c.grupo) { const subs = new Set(dentro.map((r) => r.slice(c.ruta.length + 1).split('/')[0]).filter((s) => dentro.some((r) => r.startsWith(c.ruta + '/' + s + '/')))); for (const s of subs) items.push({ ruta: c.ruta + '/' + s, titulo: s, carpeta: c, grupo: true }); }
+    else for (const r of dentro) items.push({ ruta: r, titulo: r.slice(c.ruta.length + 1), carpeta: c });
+  }
+  return items;
+}
 const MOTIVO = /^- \[\[([^\]|#]+)\]\]\s+—\s+(.+)$/gm;
 const rgba = (h, a) => { const v = parseInt(String(h).replace('#', ''), 16) || 0xC9D1FF; return `rgba(${v >> 16},${(v >> 8) & 255},${v & 255},${a})`; };
 // Fecha LOCAL, no UTC: en Chile, después de las 21:00 toISOString() ya es el día siguiente (lección del 01.09).
@@ -448,7 +521,8 @@ async function construir(app, s) {
       enlaces: enlacesDe(fm, s) };
     porRuta[f.path] = f.path;
   }
-  const resueltos = app.metadataCache.resolvedLinks, sinMotivoPorNota = {}, frases = {};
+  const resueltos = app.metadataCache.resolvedLinks, sinMotivoPorNota = {}, frases = {}, citas = {};
+  const carpetasF = carpetasFuentesDe(s), conFuentes = s.fuentes !== 'no' && s.fuentes !== false && carpetasF.length > 0;
   for (const id of Object.keys(nodos)) {
     const archivo = app.vault.getFileByPath(id);
     const texto = archivo ? await app.vault.cachedRead(archivo) : '';
@@ -468,12 +542,35 @@ async function construir(app, s) {
         }
       }
     }
-    if (s.fuentes) for (const m of texto.matchAll(RAW)) {
-      const rid = 'raw:' + m[1];
-      if (!nodos[rid]) nodos[rid] = { id: rid, capa: 0, ruta: 'raw/' + m[1], titulo: m[1].split('/').slice(1).join('/').slice(0, 80), tema: null, propio: false, fuente: true };
+    if (conFuentes) for (const c of citasDe(texto, carpetasF)) {
+      const nf = nodoFuenteDe(c.ruta, carpetasF); if (!nf) continue;
+      const rid = 'raw:' + nf.ruta;
+      if (!nodos[rid]) {
+        const existe = !!(app.vault.getFileByPath(nf.ruta) || app.vault.getFolderByPath?.(nf.ruta));
+        // Sin extensión y sin carpeta detrás («imperio-venta-x08») es una mención, no una cita rota.
+        if (!existe && !nf.grupo && !/\.[A-Za-z0-9]{1,6}$/.test(nf.ruta)) continue;
+        nodos[rid] = { id: rid, capa: 0, ruta: nf.ruta, titulo: nf.titulo.slice(0, 80), tema: null, propio: false, fuente: true, grupo: !!nf.grupo, rota: !existe };
+      }
       poner(rid, id, T('fuente citada en la página'));
+      const k = rid < id ? rid + '|' + id : id + '|' + rid;
+      if (!citas[k]) citas[k] = { origen: id, linea: c.linea };
     }
   }
+  // Inventario y «sin vínculo»: qué hay en las carpetas de fuentes y qué no cita ninguna nota del
+  // mapa. Las notas fuera del mapa (excluidas o en carpetas sin capa) se leen solo para poder decir
+  // «citada por una nota fuera del mapa», que no es lo mismo que sin cita en todo el vault.
+  const fuera = {};
+  if (conFuentes) {
+    const esFuente = (r) => carpetasF.some((c) => r.startsWith(c.ruta + '/'));
+    for (const f of app.vault.getMarkdownFiles()) {
+      if (nodos[f.path] || esFuente(f.path)) continue; // las fuentes no se leen como notas
+      const texto = await app.vault.cachedRead(f);
+      for (const c of citasDe(texto, carpetasF)) { const nf = nodoFuenteDe(c.ruta, carpetasF); if (nf && !nodos['raw:' + nf.ruta]) { const l = fuera[nf.ruta] = fuera[nf.ruta] || []; if (!l.includes(f.path)) l.push(f.path); } }
+    }
+  }
+  const inventario = conFuentes ? inventarioFuentes(app, carpetasF) : [];
+  const sinVinculo = inventario.filter((i) => !nodos['raw:' + i.ruta]).map((i) => ({ ...i, fuera: fuera[i.ruta] || [] }));
+  const citadas = inventario.length - sinVinculo.length;
   const vecinos = {};
   Object.keys(nodos).forEach((k) => (vecinos[k] = new Set()));
   for (const [k, m] of aristas) {
@@ -499,7 +596,8 @@ async function construir(app, s) {
     c.sort((p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || p._b - q._b);
     indexar();
   });
-  return { nodos: cols.flat(), aristas: [...aristas].map(([k, m]) => [...k.split('|'), m, frases[k] || null]), capas: cfg.capas, temas: cfg.temas };
+  return { nodos: cols.flat(), aristas: [...aristas].map(([k, m]) => [...k.split('|'), m, frases[k] || null, citas[k] || null]), capas: cfg.capas, temas: cfg.temas,
+    fuentes: { carpetas: carpetasF, inventario: inventario.length, citadas, sinVinculo } };
 }
 
 // ── Asistente de capas: el primer uso en un vault cualquiera ─────────────────
@@ -540,6 +638,23 @@ function detectarCarpetas(app) {
   }
   return lista.sort((a, b) => b[1] - a[1]).slice(0, 40).map(([carpeta, notas]) => ({ carpeta, notas, capa: carpeta === '/' ? 2 : sugerirCapa(carpeta) }));
 }
+// Carpetas candidatas a fuentes: tienen archivos que no son notas, o su nombre lo dice. Solo se proponen.
+function detectarFuentes(app) {
+  const todos = (app.vault.getFiles ? app.vault.getFiles() : []).map((f) => f.path);
+  const top = {};
+  for (const r of todos) { const partes = r.split('/'); if (partes.length < 2) continue; const t = partes[0]; top[t] = top[t] || { archivos: 0, noNotas: 0 }; top[t].archivos++; if (!r.endsWith('.md')) top[t].noNotas++; }
+  const pista = (t) => ['raw', 'source', 'fuente', 'clipping', 'captura'].some((k) => sinAcentos(t).includes(k));
+  return Object.entries(top).filter(([t, c]) => c.noNotas > 0 || pista(t)).map(([t, c]) => ({ carpeta: t, archivos: c.archivos })).sort((a, b) => b.archivos - a.archivos).slice(0, 6);
+}
+// «carpeta/*» conviene cuando la carpeta se organiza en subcarpetas con fecha (un día por carpeta).
+function subcarpetasFechadas(app, carpeta) {
+  const todos = (app.vault.getFiles ? app.vault.getFiles() : []).map((f) => f.path).filter((r) => r.startsWith(carpeta + '/'));
+  const subs = new Set(todos.map((r) => r.slice(carpeta.length + 1).split('/')).filter((p) => p.length > 1).map((p) => p[0]));
+  return subs.size >= 2 && [...subs].every((s) => /^\d{4}-\d{2}(-\d{2})?/.test(s));
+}
+function esLlmWiki(app) {
+  return !!(app.vault.getFileByPath('index.md') && app.vault.getFileByPath('log.md'));
+}
 class AsistenteCapas extends Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
   onOpen() {
@@ -548,11 +663,17 @@ class AsistenteCapas extends Modal {
     c.createEl('p', { text: T('El mapa ordena tus notas de izquierda a derecha, de lo que entra a lo que se sintetiza. Revisa en qué capa va cada carpeta; ya propusimos una según su nombre.') });
     const filas = detectarCarpetas(this.app);
     if (!filas.length) { c.createEl('p', { text: T('Tu vault todavía no tiene notas.') }); return; }
-    const opciones = { '0': T(CAPAS_ESTANDAR[0][0]), '1': T(CAPAS_ESTANDAR[1][0]), '2': T(CAPAS_ESTANDAR[2][0]), '3': T(CAPAS_ESTANDAR[3][0]), '-1': T('No mostrar') };
+    const opciones = { '0': T(CAPAS_ESTANDAR[0][0]), '1': T(CAPAS_ESTANDAR[1][0]), '2': T(CAPAS_ESTANDAR[2][0]), '3': T(CAPAS_ESTANDAR[3][0]), '-2': T('Fuentes citadas por ruta'), '-1': T('No mostrar') };
+    // Carpetas de fuentes: se proponen las que tienen archivos que no son notas (PDF, capturas) o
+    // cuyo nombre lo sugiere; el usuario confirma. Nada se asume por el nombre solo.
+    const propuestas = detectarFuentes(this.app);
+    for (const f of propuestas) if (!filas.some((x) => x.carpeta === f.carpeta)) filas.push({ carpeta: f.carpeta, notas: f.archivos, capa: -2, archivos: true });
     for (const fila of filas) {
-      new Setting(c).setName(fila.carpeta === '/' ? T('Notas en la raíz del vault') : fila.carpeta).setDesc(T(fila.notas === 1 ? '{0} nota' : '{0} notas', fila.notas))
+      if (propuestas.some((f) => f.carpeta === fila.carpeta) && fila.capa === 0) fila.capa = -2;
+      new Setting(c).setName(fila.carpeta === '/' ? T('Notas en la raíz del vault') : fila.carpeta).setDesc(fila.archivos ? T('{0} archivo(s)', fila.notas) : T(fila.notas === 1 ? '{0} nota' : '{0} notas', fila.notas))
         .addDropdown((d) => d.addOptions(opciones).setValue(String(fila.capa)).onChange((v) => { fila.capa = Number(v); }));
     }
+    if (esLlmWiki(this.app) && propuestas.length) c.createEl('p', { cls: 'setting-item-description', text: T('Detecté un LLM wiki (index.md y log.md con entradas fechadas): las carpetas marcadas como fuentes se mostrarán bajo demanda.') });
     new Setting(c)
       .addButton((b) => b.setButtonText(T('Ahora no')).onClick(async () => { this.plugin.ajustes.configurado = true; await this.plugin.guardar(); this.close(); }))
       .addButton((b) => b.setButtonText(T('Aplicar')).setCta().onClick(() => this.aplicar(filas)));
@@ -564,6 +685,8 @@ class AsistenteCapas extends Modal {
     const aj = this.plugin.ajustes;
     aj.capas = usadas.map((capa) => CAPAS_ESTANDAR[capa].map((x) => T(x)).join(' | ')).join('\n');
     aj.carpetas = filas.filter((f) => f.capa >= 0).map((f) => `${f.carpeta} = ${indice[f.capa]}`).join('\n');
+    const fuentes = filas.filter((f) => f.capa === -2);
+    if (fuentes.length) { aj.carpetasFuentes = fuentes.map((f) => f.carpeta + (subcarpetasFechadas(this.app, f.carpeta) ? '/*' : '')).join('\n'); if (aj.fuentes === 'no') aj.fuentes = 'demanda'; }
     aj.configurado = true;
     await this.plugin.guardar();
     this.close();
@@ -594,8 +717,16 @@ class VistaMapa extends ItemView {
     const barra = raiz.createDiv('mn-barra'); this.barra = barra;
     this.marca = barra.createDiv({ cls: 'mn-marca', text: NOMBRE });
     const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar' });
-    this.registerDomEvent(buscar, 'input', () => { this.filtro = buscar.value.trim().toLowerCase(); this.pedir(); });
-    this.registerDomEvent(buscar, 'keydown', (e) => { if (e.key !== 'Enter' || !this.filtro) return; const n = this.N.find((x) => (x.titulo + ' ' + x.id).toLowerCase().includes(this.filtro)); if (n) { buscar.value = ''; this.filtro = ''; this.enfocar(n.id, true); } else new Notice(T('No hay notas con ese nombre')); });
+    this.resultados = barra.createDiv('mn-resultados');
+    const elegir = (n) => { buscar.value = ''; this.filtro = ''; this.resultados.empty(); this.resultados.hide(); this.irA(n.id); };
+    this.registerDomEvent(buscar, 'input', () => {
+      this.filtro = buscar.value.trim().toLowerCase(); this.pedir();
+      this.resultados.empty();
+      const lista = this.filtro ? this.buscarTodo(this.filtro) : [];
+      this.resultados.toggle(lista.length > 0);
+      for (const n of lista) { const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') , text: (n.fuente ? '📄 ' : '') + n.titulo }); fila.createSpan({ cls: 'mn-tenue', text: ' ' + (n.fuente ? n.ruta : n.ruta.split('/').slice(0, -1).join('/')) }); fila.onclick = () => elegir(n); }
+    });
+    this.registerDomEvent(buscar, 'keydown', (e) => { if (e.key !== 'Enter' || !this.filtro) return; const n = this.buscarTodo(this.filtro)[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre')); });
     this.chips = barra.createDiv('mn-chips');
     const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
@@ -738,8 +869,10 @@ class VistaMapa extends ItemView {
     for (const n of this.D.nodos) if (this.rep[n.id] !== n.id) this.porId[this.rep[n.id]].agrupados++;
     const mapa = new Map();
     this.frase = {};
-    for (const [a, b, m, fr] of this.D.aristas) {
+    this.cita = {};
+    for (const [a, b, m, fr, ci] of this.D.aristas) {
       if (fr) this.frase[a + '|' + b] = this.frase[b + '|' + a] = fr;
+      if (ci) this.cita[a + '|' + b] = this.cita[b + '|' + a] = ci;
       const ra = this.rep[a], rb = this.rep[b]; if (ra === rb) continue;
       const k = ra < rb ? ra + '|' + rb : rb + '|' + ra, agrupada = ra !== a || rb !== b;
       const e = mapa.get(k);
@@ -760,14 +893,19 @@ class VistaMapa extends ItemView {
     // Revelado progresivo: cada capa muestra sus notas más conectadas; el resto se trae buscando o tocando.
     const max = Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150);
     this.ocultas = {};
+    // Fuentes bajo demanda: no ocupan lugar ni cuentan como ocultas; aparecen junto a la nota
+    // enfocada que las cita y se van con ella. Sus relaciones siguen vivas para buscar y contar.
+    const demanda = this.plugin.ajustes.fuentes === 'demanda';
+    const pedidas = demanda && this.foco ? new Set(this.ady[this.foco] || []) : null;
     this.D.capas.forEach((_, capa) => {
-      const col = this.N.filter((x) => x.capa === capa);
+      const col = this.N.filter((x) => x.capa === capa && !(demanda && x.fuente));
       const rango = col.slice().sort((a, b) => (this.ady[b.id]?.length || 0) - (this.ady[a.id]?.length || 0));
       const visibles = new Set(rango.slice(0, max).map((x) => x.id));
       let ocultas = 0;
       for (const x of col) { x.oculto = !visibles.has(x.id) && !this.forzados.has(x.id) && !x.agrupados && !x.virtual; if (x.oculto) ocultas++; }
       this.ocultas[capa] = ocultas;
     });
+    if (demanda) for (const x of this.N) if (x.fuente) x.oculto = !(pedidas && pedidas.has(x.id)) && x.id !== this.foco;
     if (this.foco && !this.porId[this.foco]) this.foco = this.rep[this.foco] || null;
     this.medir(); this.pedir();
   }
@@ -859,6 +997,7 @@ class VistaMapa extends ItemView {
       if (this.vacios) { this.listaVacios = this.calcularVacios(); this.panelVacios(); } else this.abrirPanel(this.foco ? this.porId[this.foco] : null);
       this.pintarEstado(); this.pedir();
     }));
+    if (this.D.fuentes?.carpetas.length) m.addItem((i) => i.setTitle(T('Fuentes sin vínculo · {0}', this.D.fuentes.sinVinculo.length)).setIcon('file-question').onClick(() => this.panelFuentes()));
     m.addItem((i) => i.setTitle(this.salud ? T('Quitar modo salud') : T('Modo salud')).setIcon('heart-pulse').onClick(() => {
       this.salud = !this.salud; if (this.salud) this.informeSalud(); this.pintarEstado(); this.pedir();
     }));
@@ -937,12 +1076,26 @@ class VistaMapa extends ItemView {
   }
   enfocar(id, centrar) {
     let n = this.porId[id]; if (!n) return;
-    if (n.oculto) { this.forzados.add(id); this.rehacer(); n = this.porId[id]; }
+    const demanda = this.plugin.ajustes.fuentes === 'demanda';
     this.foco = id; this.camino = null; this.sugerencia = null;
+    if (n.oculto || demanda) { if (n.oculto && !n.fuente) this.forzados.add(id); this.rehacer(); n = this.porId[id]; }
     if (this.radial) { this.medir(); this.encuadrar(); this.pintarEstado(); }
     this.abrirPanel(n);
     if (centrar && !this.radial) { const v = this.vista; v.x = this.W * (this.angosto() ? 0.5 : 0.42) - n.x * v.k; v.y = this.H * (this.angosto() ? 0.3 : 0.5) - n.y * v.k; }
     this.pedir();
+  }
+  // Busca en el índice completo: notas ocultas por el límite, miembros de temas colapsados y fuentes.
+  buscarTodo(q) {
+    const sa = (x) => sinAcentos(String(x || ''));
+    const qq = sa(q), puntaje = (n) => (sa(n.titulo).startsWith(qq) ? 0 : sa(n.titulo).includes(qq) ? 1 : 2) + (n.fuente ? 0.5 : 0);
+    return this.D.nodos.filter((n) => sa(n.titulo + ' ' + n.ruta).includes(qq)).sort((a, b) => puntaje(a) - puntaje(b) || b.grado - a.grado).slice(0, 8);
+  }
+  // Llega a cualquier nodo del índice: expande el tema si estaba colapsado, y lo fuerza a la vista.
+  irA(id) {
+    const n = this.base[id]; if (!n) return;
+    if (n.tema && this.colapsados.has(n.tema)) { this.colapsados.delete(n.tema); this.rehacer(); this.pintarChips(); this.pintarEstado(); }
+    if (n.fuente && this.plugin.ajustes.fuentes === 'demanda') { const v = this.adyBase[id]; const primera = v && [...v][0]; if (primera) { this.enfocar(primera, true); return; } }
+    this.enfocar(id, true);
   }
   pedir() { if (!this.pendiente && !this.cerrada) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
   visible(n) {
@@ -953,7 +1106,8 @@ class VistaMapa extends ItemView {
       && (!this.filtro || (n.titulo + ' ' + n.id).toLowerCase().includes(this.filtro));
   }
   problemas(n) {
-    if (n.fuente || n.virtual) return [];
+    if (n.fuente) return n.rota ? [T('referencia rota: el archivo no existe')] : [];
+    if (n.virtual) return [];
     const p = [];
     if (n.grado === 0) p.push(T('huérfana: ninguna nota la enlaza ni enlaza a otra'));
     if (!n.propio && this.plugin.ajustes.propiedadTema && n.capa !== 0) p.push(T('sin propiedad `{0}`', this.plugin.ajustes.propiedadTema));
@@ -1236,18 +1390,18 @@ class VistaMapa extends ItemView {
     ojo.createSpan({ text: n.agrupados ? `Supernodo · ${nombreTema}` : `${nombreTema} · ${capa[1]}` });
     cab.createEl('h3', { text: n.agrupados ? T('{0} · {1} notas', nombreTema, n.agrupados + 1) : n.titulo });
     const meta = [];
-    if (!n.virtual) meta.push(n.fuente ? 'fuente original' : n.ruta.split('/').slice(-2).join('/'));
+    if (!n.virtual) meta.push(n.fuente ? n.ruta : n.ruta.split('/').slice(-2).join('/'));
     meta.push(`${vec.length} conexiones`);
     if (n.updated) meta.push(`actualizada ${n.updated.slice(0, 10)}`);
     cab.createDiv({ cls: 'mn-meta', text: meta.join(' · ') });
     const acciones = cab.createDiv('mn-acciones');
-    if (!n.fuente && !n.virtual) this.boton(acciones, 'file-text', 'Abrir', () => this.abrirNota(n.ruta), true);
+    if (!n.virtual && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', 'Abrir', () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
     if (n.tema && (n.agrupados || n.capa === ultima)) this.boton(acciones, this.colapsados.has(n.tema) ? 'maximize-2' : 'minimize-2', this.colapsados.has(n.tema) ? 'Expandir' : 'Colapsar', () => this.alternarColapso(n.tema));
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
-    cerrar.onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
+    cerrar.onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.plugin.ajustes.fuentes === 'demanda') this.rehacer(); if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
 
     const lista = p.createDiv('mn-lista');
     const explica = lista.createDiv('mn-explica');
@@ -1261,6 +1415,8 @@ class VistaMapa extends ItemView {
       const zona = explica.createDiv('mn-ia');
       zona.createEl('button', { cls: 'mn-btn mn-btn-ia', text: n.resumenAprobado ? T('Rehacer resumen con IA') : T('Resumir con IA') }).onclick = () => this.proponerResumen(n, zona);
     }
+    if (n.fuente && n.rota) explica.createDiv({ cls: 'mn-enlace mn-alerta', text: '⚠ ' + T('referencia rota: el archivo no existe') + ' · ' + n.ruta });
+    if (n.fuente && n.grupo) explica.createDiv({ cls: 'mn-capa', text: T('Carpeta citada: no equivale a citar cada archivo que contiene.') });
     for (const frase of this.rol(n)) explica.createDiv({ cls: 'mn-rol', text: frase });
     if (capa[2] && !n.agrupados) explica.createDiv({ cls: 'mn-capa', text: T('Capa {0}: {1}.', capa[1], capa[2]) });
 
@@ -1270,7 +1426,9 @@ class VistaMapa extends ItemView {
     const motivoDe = (v) => this.motivo[n.id + '|' + v.id];
     const ordenar = (g) => g.sort((a, b) => (motivoDe(b) ? 1 : 0) - (motivoDe(a) ? 1 : 0) || this.ady[b.id].length - this.ady[a.id].length);
     const entrada = vec.filter((v) => v.capa === 0 && n.capa !== 0);
-    const grupos = n.capa === ultima || n.agrupados
+    const grupos = n.fuente
+      ? [[T('Citada por'), vec, T('notas que citan esta fuente por su ruta')]]
+      : n.capa === ultima || n.agrupados
       ? this.D.capas.map((c, i) => [i === 0 ? null : T('Contiene · {0}', c[1]), vec.filter((v) => v.capa === i && i !== 0), T('notas de {0} que cuelgan de este tema', c[1].toLowerCase())])
       : [
           [T('Pertenece a'), vec.filter((v) => v.capa === ultima && v.tema === n.tema), T('la síntesis de su tema')],
@@ -1319,7 +1477,11 @@ class VistaMapa extends ItemView {
     fila.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[v.tema] ? this.D.temas[v.tema][1] : '#C9D1FF' });
     const txt = fila.createDiv(); txt.createEl('b', { text: v.agrupados ? T('{0} · {1} notas', this.D.temas[v.tema]?.[0] || v.titulo, v.agrupados + 1) : v.titulo });
     const fr = n && this.frase[n.id + '|' + v.id];
-    if (m) txt.createDiv({ cls: 'mn-motivo', text: m });
+    const ci = n && this.cita[n.id + '|' + v.id];
+    if (ci && (n.fuente || v.fuente)) {
+      const nota = n.fuente ? v : n, ir = txt.createDiv({ cls: 'mn-motivo mn-cita', text: T('Ir a la cita') + ' · ' + T('línea {0}', ci.linea) });
+      ir.onclick = (e) => { e.stopPropagation(); this.abrirNota(nota.ruta, ci.linea); };
+    } else if (m) txt.createDiv({ cls: 'mn-motivo', text: m });
     else if (fr) {
       const d = txt.createDiv({ cls: 'mn-frase' });
       d.createSpan({ cls: 'mn-frase-etq', text: T('en el texto: ') }); d.appendText('«' + fr.texto + '»');
@@ -1425,11 +1587,38 @@ class VistaMapa extends ItemView {
     }
     p.addClass('abierto');
   }
+  // La bandeja: archivos de las carpetas de fuentes que ninguna nota del mapa cita. Es una lista al
+  // costado, no puntos en el lienzo: no reordena nada. Y dice solo «sin cita reconocida».
+  panelFuentes() {
+    const p = this.panel; p.empty(); this.guia.hide();
+    const F = this.D.fuentes, cab = p.createDiv('mn-cab');
+    cab.createEl('h3', { text: T('Fuentes sin vínculo') });
+    const alcance = F.carpetas.map((c) => c.ruta + (c.grupo ? '/*' : '')).join(' · ');
+    cab.createDiv({ cls: 'mn-meta', text: T('Fuentes citadas: {0} de {1}', F.citadas, F.inventario) + ' · ' + alcance });
+    const acciones = cab.createDiv('mn-acciones');
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista');
+    lista.createDiv({ cls: 'mn-capa', text: T('Archivos de las carpetas de fuentes que ninguna nota del mapa cita por su ruta. Solo dice eso: no dice si se procesaron.') });
+    if (!F.sinVinculo.length) lista.createDiv({ cls: 'mn-rol', text: T('Todas las fuentes tienen vínculo.') });
+    const orden = F.sinVinculo.slice().sort((a, b) => b.ruta.localeCompare(a.ruta));
+    for (const s of orden.slice(0, 200)) {
+      const fila = lista.createDiv('mn-con');
+      fila.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': s.fuera.length ? '#F5CF45' : '#8A93B8' });
+      const txt = fila.createDiv(); txt.createEl('b', { text: (s.grupo ? '📁 ' : '📄 ') + s.titulo });
+      txt.createDiv({ cls: 'mn-motivo mn-tenue', text: s.fuera.length ? T('citada solo por una nota fuera del mapa') + ': ' + s.fuera.map((r) => r.split('/').pop().replace(/\.md$/, '')).join(', ') : s.ruta });
+      if (!s.grupo) fila.onclick = () => this.abrirNota(s.ruta);
+    }
+    p.addClass('abierto'); this.medir(); this.pedir();
+  }
   informeSalud() {
     const nodos = this.D.nodos.filter((n) => !n.fuente);
     const huerf = nodos.filter((n) => n.grado === 0).length, sinTema = nodos.filter((n) => !n.propio && n.capa !== 0).length;
     const sinMot = this.D.aristas.filter(([a, b, m]) => !m && !this.base[a].fuente && !this.base[b].fuente).length;
-    new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
+    const rotas = this.D.nodos.filter((n) => n.fuente && n.rota).length, sinV = this.D.fuentes?.sinVinculo.length || 0;
+    if (this.D.fuentes?.carpetas.length) new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo · {3} referencia(s) rota(s) · {4} fuente(s) sin vínculo', huerf, sinTema, sinMot, rotas, sinV), 8000);
+    else new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
   }
   async exportar() {
     const blob = await new Promise((ok) => this.lienzo.toBlob(ok, 'image/png'));
@@ -1442,9 +1631,10 @@ class VistaMapa extends ItemView {
     await this.app.vault.createBinary(ruta, await blob.arrayBuffer());
     new Notice(T('Imagen guardada en {0}', ruta));
   }
-  abrirNota(ruta) {
+  abrirNota(ruta, linea) {
     const f = this.app.vault.getFileByPath(ruta);
-    if (f) this.app.workspace.getLeaf(Platform.isMobile ? false : 'tab').openFile(f);
+    if (!f) return new Notice(T('Archivo no encontrado: {0}', ruta));
+    this.app.workspace.getLeaf(Platform.isMobile ? false : 'tab').openFile(f, linea ? { eState: { line: linea - 1 } } : undefined);
   }
 }
 
@@ -1463,8 +1653,9 @@ class AjustesMapa extends PluginSettingTab {
       .addText((t) => t.setValue(p.ajustes.propiedadTema).onChange(async (v) => { p.ajustes.propiedadTema = v.trim(); await p.guardar(); }));
     area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7);
     area('Excluir notas', 'Nombres de nota (sin .md), separados por coma o línea. Útil para notas que enlazan a todo.', 'excluir', 2);
-    new Setting(c).setName(T('Mostrar fuentes citadas')).setDesc(T('Agrega a la primera capa los archivos de raw/ que las notas citan.'))
-      .addToggle((t) => t.setValue(p.ajustes.fuentes).onChange(async (v) => { p.ajustes.fuentes = v; await p.guardar(); }));
+    area('Carpetas de fuentes', 'Una por línea. «carpeta» cuenta cada archivo; «carpeta/*» agrupa cada subcarpeta en un nodo (por ejemplo, un día). Vacío = sin fuentes.', 'carpetasFuentes', 3);
+    new Setting(c).setName(T('Mostrar fuentes citadas')).setDesc(T('Las fuentes son los archivos de esas carpetas que tus notas citan por su ruta. «Bajo demanda»: aparecen al tocar la nota que las cita. «Todas»: siempre en la primera capa.'))
+      .addDropdown((d) => d.addOptions({ no: T('No mostrar'), demanda: T('Bajo demanda'), todas: T('Todas') }).setValue(String(p.ajustes.fuentes)).onChange(async (v) => { p.ajustes.fuentes = v; await p.guardar(); }));
     new Setting(c).setName(T('Notas visibles por capa')).setDesc(T('En vaults grandes, cada capa muestra sus notas más conectadas. Las demás aparecen al buscarlas o al tocarlas desde el panel.'))
       .addSlider((sl) => sl.setLimits(30, 600, 10).setValue(Number(p.ajustes.maxPorCapa) || 150).setDynamicTooltip().onChange(async (v) => { p.ajustes.maxPorCapa = v; await p.guardar(); }));
     new Setting(c).setName(T('Seguir la nota activa')).setDesc(T('Al abrir una nota, el mapa la enfoca.'))
@@ -1538,6 +1729,14 @@ export default class MapaNeuronal extends Plugin {
   async onload() {
     const guardado = await this.loadData();
     this.ajustes = Object.assign({}, AJUSTES_BASE, guardado);
+    // 1.27: «mostrar fuentes» deja de ser un interruptor y las carpetas dejan de estar fijas en el
+    // código. Quien lo tenía encendido sigue viendo exactamente lo mismo: todas, y las dos carpetas
+    // que antes estaban escritas a mano.
+    if (typeof this.ajustes.fuentes === 'boolean') {
+      if (this.ajustes.fuentes && !this.ajustes.carpetasFuentes) this.ajustes.carpetasFuentes = 'raw/articles\nraw/daily/*';
+      this.ajustes.fuentes = this.ajustes.fuentes ? 'todas' : 'no';
+      if (guardado) await this.guardar();
+    }
     if (!guardado) { // primera instalación: los valores de ejemplo en el idioma de Obsidian
       this.ajustes.capas = `${T('Entrada')} | ${T('notas con fecha')}\n${T('Notas')} | ${T('el resto del vault')}`;
       this.ajustes.seccionMotivos = T('Conexiones');

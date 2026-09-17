@@ -61,7 +61,7 @@ function obsidianSimulado() {
 const el = () => ({
   setText() {}, empty() {}, createDiv: el, createEl: el, createSpan: el, appendText() {},
   addClass() {}, removeClass() {}, toggleClass() {}, hasClass: () => false, setCssProps() {},
-  show() {}, hide() {}, remove() {}, style: {}, isShown: () => true, onclick: null, disabled: false,
+  show() {}, hide() {}, toggle() {}, remove() {}, style: {}, isShown: () => true, onclick: null, disabled: false,
   inputEl: { type: '', rows: 0, addClass() {} },
   getBoundingClientRect: () => ({ width: 1400, height: 900, top: 0, left: 0 }),
   getContext: () => contexto2D(),
@@ -96,7 +96,9 @@ function vaultSimulado(notas) {
   const escrituras = [];
   const app = {
     vault: {
-      getMarkdownFiles: () => archivos.filter((p) => notas[p] !== undefined).map((p) => ({ path: p, basename: base(p) })),
+      // Solo las .md son notas; lo demás (PDF, capturas) existe en el vault pero no se lee como nota.
+      getMarkdownFiles: () => archivos.filter((p) => notas[p] !== undefined && p.endsWith('.md')).map((p) => ({ path: p, basename: base(p) })),
+      getFiles: () => archivos.filter((p) => notas[p] !== undefined).map((p) => ({ path: p, basename: base(p) })),
       getFileByPath: (p) => (notas[p] !== undefined ? { path: p, basename: base(p) } : null),
       getFolderByPath: (p) => (archivos.some((a) => a.startsWith(p + '/')) ? { path: p } : null),
       createFolder: async () => {},
@@ -134,7 +136,7 @@ function cargarPlugin(rutaMain) {
   global.document = global.document || { visibilityState: 'visible' };
   global.getComputedStyle = global.getComputedStyle || (() => ({ getPropertyValue: () => '' }));
   global.ResizeObserver = global.ResizeObserver || class { observe() {} disconnect() {} };
-  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { construir, VistaMapa, AsistenteCapas, AjustesMapa, AJUSTES_BASE, PROVEEDORES, CAPAS_ESTANDAR, EN, T, enlacesDe, detectarCarpetas, leerAjustes, CLAVE_IA };')(
+  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { construir, VistaMapa, AsistenteCapas, AjustesMapa, AJUSTES_BASE, PROVEEDORES, CAPAS_ESTANDAR, EN, T, enlacesDe, detectarCarpetas, leerAjustes, CLAVE_IA, citasDe, carpetasFuentesDe, nodoFuenteDe, inventarioFuentes, detectarFuentes, subcarpetasFechadas };')(
     (n) => (n === 'obsidian' ? sim.modulo : require(n)), m, m.exports);
   return { Plugin: m.exports.default || m.exports, interno: m.exports.__t, avisos: sim.avisos, filas: sim.filas };
 }
