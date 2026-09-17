@@ -223,6 +223,7 @@ const EN = {
   'Fuentes citadas por ruta': 'Sources cited by path',
   'Detecté un LLM wiki (index.md y log.md con entradas fechadas): las carpetas marcadas como fuentes se mostrarán bajo demanda.': 'An LLM wiki was detected (index.md and log.md with dated entries): the folders marked as sources will show on demand.',
   '{0} archivo(s)': '{0} file(s)',
+  ' · {0} fuentes': ' · {0} sources',
   'Notas visibles por capa': 'Notes visible per layer',
   'En vaults grandes, cada capa muestra sus notas más conectadas. Las demás aparecen al buscarlas o al tocarlas desde el panel.':
     'In large vaults each layer shows its most connected notes. The rest appear when you search for them or open them from the panel.',
@@ -840,7 +841,8 @@ class VistaMapa extends ItemView {
     this.D.nodos.forEach((n) => { if (n.capa === ultima && n.tema && n.propio && !this.hubs[n.tema]) this.hubs[n.tema] = n.id; });
     [...this.colapsados].forEach((t) => { if (!this.D.temas[t]) this.colapsados.delete(t); });
     const conEnlaces = this.D.nodos.filter((n) => n.enlaces && n.enlaces.length).length;
-    this.marca.setText(T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length, this.D.aristas.length) + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : ''));
+    const nFuentes = this.D.nodos.filter((n) => n.fuente).length;
+    this.marca.setText(T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length) + (nFuentes ? T(' · {0} fuentes', nFuentes) : '') + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : ''));
     if (this.solo && !this.D.temas[this.solo]) this.solo = null;
     if (this.vacios) this.listaVacios = this.calcularVacios();
     this.rehacer();
@@ -1460,7 +1462,7 @@ class VistaMapa extends ItemView {
       this.titulo(lista, T('De dónde salió'), entrada.length, [fuentes.length && T('{0} fuente(s) original(es)', fuentes.length), diarios.length && T('{0} nota(s) de la primera capa', diarios.length)].filter(Boolean).join(' · '));
       const fichas = lista.createDiv('mn-fichas');
       for (const v of [...fuentes, ...diarios.sort((a, b) => b.titulo.localeCompare(a.titulo))]) {
-        const f = fichas.createEl('button', { cls: 'mn-ficha' + (v.fuente ? ' fuente' : ''), text: v.fuente ? '📄 ' + v.titulo.replace(/\.md$/, '') : v.titulo });
+        const f = fichas.createEl('button', { cls: 'mn-ficha' + (v.fuente ? ' fuente' : ''), text: v.fuente ? (v.grupo ? '📁 ' : v.rota ? '⚠ ' : '📄 ') + v.titulo.replace(/\.md$/, '') : v.titulo });
         f.onclick = () => this.enfocar(v.id, true);
       }
     }

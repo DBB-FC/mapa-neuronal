@@ -86,6 +86,8 @@ const vista = (app, ajustes, D) => {
   p.cierto('el buscador encuentra fuentes y notas, con o sin tildes', v.buscarTodo('diseno').some((n) => n.fuente) && v.buscarTodo('maxun').some((n) => !n.fuente));
   p.cierto('la bandeja se abre sin reventar', (() => { try { v.panelFuentes(); return true; } catch { return false; } })());
   v.dibujar(); p.cierto('dibuja con fuentes bajo demanda', v.ctx.llamadas > 50);
+  let marca = ''; v.marca = { setText: (x) => { marca = x; } }; await v.recargar();
+  p.cierto('la cabecera separa notas de fuentes', /5 nodes|5 nodos/.test(marca) && /5 sources|5 fuentes/.test(marca));
   // todas
   const v2 = vista(app, Object.assign({}, AJ, { fuentes: 'todas' }), D); v2.plugin.construir = null;
   await v2.recargar();
