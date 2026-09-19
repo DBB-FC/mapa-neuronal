@@ -7,7 +7,7 @@
  */
 const { cargarPlugin, vaultSimulado, pruebas, el, contexto2D } = require('./simulado.cjs');
 const { Plugin, interno, avisos, ajustesUI } = cargarPlugin(process.argv[2]);
-const { construir, VistaMapa, AsistenteCapas, AJUSTES_BASE, CAPAS_ESTANDAR, PLANTILLAS, REGLAS, plantillaActual } = interno;
+const { construir, VistaMapa, AsistenteCapas, AjustesMapa, AJUSTES_BASE, CAPAS_ESTANDAR, PLANTILLAS, REGLAS, plantillaActual } = interno;
 const p = pruebas('v128');
 
 // ── El vault: 4 capas, un tema con dos notas en la última capa (la hub NO es la primera),
@@ -78,6 +78,21 @@ const menuFalso = () => ({ items: [], addItem(f) { const c = { titulo: '', setTi
     p.igual('wiki/temas también', descN('wiki/temas'), '5 notes');
     p.cierto('la carpeta madre wiki queda solo con lo suelto, o desaparece', descN('wiki') === undefined || descN('wiki') === '1 note');
     p.igual('la capa configurada viene marcada', filaN('wiki/temas'), '1');
+  }
+
+  // ── 1.31: definiciones de ajustes (Obsidian 1.13) y salud por gravedad ──
+  {
+    const plD = new Plugin(); plD.app = app; plD.ajustes = Object.assign({}, AJUSTES); let guardado = 0; plD.guardar = async () => { guardado++; };
+    const tab = new AjustesMapa(app, plD); tab.plugin = plD;
+    const defs = tab.getSettingDefinitions();
+    const claves = defs.filter((d) => d.control).map((d) => d.control.key);
+    p.cierto('las definiciones cubren los ajustes principales', ['capas', 'carpetas', 'propiedadTema', 'fuentes', 'maxPorCapa', 'animacion', 'dobleVerificacion'].every((k) => claves.includes(k)));
+    p.cierto('cada definición con control tiene nombre y tipo', defs.filter((d) => d.control).every((d) => d.name && d.control.type));
+    p.cierto('la sección de IA va como render', defs.some((d) => typeof d.render === 'function'));
+    p.igual('lee de plugin.ajustes', tab.getControlValue('capas'), AJUSTES.capas);
+    await tab.setControlValue('seccionMotivos', '  '); p.igual('sección vacía vuelve a Conexiones', plD.ajustes.seccionMotivos, 'Conexiones');
+    await tab.setControlValue('maxPorCapa', '90'); p.igual('el tope se guarda como número', plD.ajustes.maxPorCapa, 90);
+    p.igual('cada escritura persiste', guardado, 2);
   }
 
   // ── 1.29: el chip de tema atenúa, no esconde; y las notas más conectadas llevan rótulo ──

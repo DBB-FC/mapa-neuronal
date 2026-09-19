@@ -4,6 +4,8 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.31 (19.09.2026): salud por gravedad (rojo solo lo grave, ámbar el resto); en el teléfono el tope por
+ *   capa baja a lo que cabe; ajustes también como definiciones (búsqueda de ajustes de Obsidian 1.13).
  * v1.30 (19.09.2026): la escena se cachea en dos capas fuera de pantalla y cada cuadro de la animación
  *   solo copia y pinta los pulsos: las 1.100 curvas de un vault real ya no se rasterizan 30 veces por segundo.
  * v1.29.2 (19.09.2026): el estado («largo alcance», «salud») ya no tapa el título de la primera capa;
@@ -408,6 +410,7 @@ const EN = {
   'índices y mapas': 'indexes and maps',
   'La capa actual de cada carpeta ya viene marcada.': "Each folder's current layer is already selected.",
   'Mis capas actuales': 'My current layers',
+  '{0} nota(s) graves (rojo). Lo demás, en ámbar.': '{0} serious note(s) (red). The rest, in amber.',
 };
 let _es = null; // se resuelve una vez: Obsidian pide reiniciar para cambiar de idioma
 const enEspanol = () => {
@@ -990,6 +993,10 @@ class VistaMapa extends ItemView {
     const ultima = this.D.capas.length - 1;
     // El hub de un tema: la nota de la última capa marcada con `hub: true`; si no hay, la primera
     // con el tema declarado. Y se cuenta cuántas más comparten tema en esa capa, para avisarlo.
+    // [1.31] Salud por gravedad: «sin motivo» solo es grave en el 10 % de notas con más
+    // enlaces sin motivo. Con 766 de 1.154 enlaces sin motivo, todo salía rojo y no decía nada.
+    const sinM = this.D.nodos.filter((n) => !n.fuente && n.sinMotivo > 0).map((n) => n.sinMotivo).sort((a, b) => b - a);
+    this.umbralSinMotivo = sinM.length ? Math.max(3, sinM[Math.floor(sinM.length * 0.1)] || sinM[0]) : Infinity;
     this.hubs = {}; this.hermanas = {};
     this.D.nodos.forEach((n) => { if (n.capa === ultima && n.tema && n.propio) { if (n.hub) this.hubs[n.tema] = n.id; this.hermanas[n.tema] = (this.hermanas[n.tema] || 0) + 1; } });
     this.D.nodos.forEach((n) => { if (n.capa === ultima && n.tema && n.propio && !this.hubs[n.tema]) this.hubs[n.tema] = n.id; });
@@ -1059,7 +1066,10 @@ class VistaMapa extends ItemView {
     N.forEach((n) => { n.destacado = false; });
     for (let c = 0; c < ultima; c++) N.filter((n) => n.capa === c && !n.fuente && !n.virtual).sort((p, q) => this.ady[q.id].length - this.ady[p.id].length).slice(0, 3).forEach((n) => { if (this.ady[n.id].length >= 3) n.destacado = true; });
     // Revelado progresivo: cada capa muestra sus notas más conectadas; el resto se trae buscando o tocando.
-    const max = Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150);
+    // [1.31] En pantalla angosta el tope baja solo a lo que cabe a 13 px por nota: 73 nodos
+    // en la altura de un teléfono eran puntos pegados. Lo demás sigue apareciendo al buscar.
+    const cabe = this.angosto() && this.H ? Math.max(12, Math.floor((this.H - 230) / 13)) : Infinity;
+    const max = Math.min(cabe, Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150));
     this.ocultas = {};
     // Fuentes bajo demanda: no ocupan lugar ni cuentan como ocultas; aparecen junto a la nota
     // enfocada que las cita y se van con ella. Sus relaciones siguen vivas para buscar y contar.
@@ -1291,6 +1301,13 @@ class VistaMapa extends ItemView {
     if (n.capa === ultima && n.tema && (this.hermanas?.[n.tema] || 0) > 1 && this.hubs[n.tema] !== n.id) p.push(T('otras {0} nota(s) de este tema en la capa de temas; solo la hub lleva el nombre del tema. Para elegirla, pon `hub: true` en su frontmatter', this.hermanas[n.tema] - 1));
     return p;
   }
+  grave(n) {
+    if (n.fuente) return !!n.rota;
+    if (n.virtual) return false;
+    const ultima = this.D.capas.length - 1;
+    return n.grado === 0 || (!n.propio && !!this.plugin.ajustes.propiedadTema && n.capa !== 0) || n.sinMotivo >= (this.umbralSinMotivo ?? Infinity)
+      || (n.capa === ultima && !!n.tema && (this.hermanas?.[n.tema] || 0) > 1 && this.hubs[n.tema] !== n.id);
+  }
   esHub(n) { return !!n && !n.virtual && n.capa === this.D.capas.length - 1 && !!n.tema && this.hubs?.[n.tema] === n.id; }
   activo(n) { return !this.reciente || n.agrupados || diasDesde(n.updated) <= this.reciente; }
   traza(id) {
@@ -1448,7 +1465,9 @@ class VistaMapa extends ItemView {
         else if (contiguas || e.superE) curva(A, B, 0.22, 0.8 + grueso, tono);
       } else if (contiguas || this.todas || e.superE) {
         const rojo = this.salud && !e.m && !e.superE && !A.fuente && !B.fuente;
-        curva(A, B, tenue ? 0.03 : rojo ? 0.35 : e.superE ? 0.3 : contiguas ? 0.2 : 0.07, (rojo ? 0.9 : 0.75) + grueso, rojo ? '#FF6B6B' : tono);
+        // Enlaces sin motivo: rojo solo si tocan una nota grave; el resto, ámbar tenue.
+        const graveE = rojo && (this.grave(A) || this.grave(B));
+        curva(A, B, tenue ? 0.03 : graveE ? 0.35 : rojo ? 0.14 : e.superE ? 0.3 : contiguas ? 0.2 : 0.07, (graveE ? 0.9 : 0.75) + grueso, graveE ? '#FF6B6B' : rojo ? '#F5CF45' : tono);
       }
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -1486,7 +1505,11 @@ class VistaMapa extends ItemView {
       else if (!radial && this.esHub(n) && (this.hermanas?.[n.tema] || 0) > 1) { ctx.strokeStyle = rgba(color(n.tema), 0.6); ctx.lineWidth = 1.5 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 3.5 / vista.k, 0, 6.283); ctx.stroke(); }
       if (this.reciente && activo && !n.agrupados && diasDesde(n.updated) <= this.reciente) { ctx.strokeStyle = rgba('#FFFFFF', 0.5); ctx.lineWidth = 3 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 / vista.k, 0, 6.283); ctx.stroke(); }
       if (n.enlaces && n.enlaces.length) { ctx.strokeStyle = rgba('#FFFFFF', activo ? 0.75 : 0.2); ctx.lineWidth = 1 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5 / vista.k, 0, 6.283); ctx.stroke(); }
-      if (this.salud && this.problemas(n).length) { ctx.strokeStyle = '#FF6B6B'; ctx.lineWidth = 1.6 / vista.k; ctx.setLineDash([3 / vista.k, 2 / vista.k]); ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 / vista.k, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
+      if (this.salud && this.problemas(n).length) {
+        const g = this.grave(n); // rojo y punteado lo grave; ámbar fino lo que solo tiene enlaces sin motivo
+        ctx.strokeStyle = g ? '#FF6B6B' : rgba('#F5CF45', 0.55); ctx.lineWidth = (g ? 1.6 : 1) / vista.k; if (g) ctx.setLineDash([3 / vista.k, 2 / vista.k]);
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 / vista.k, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+      }
       if (n.id === centro || (this.eligiendo && this.eligiendo.desde === n.id)) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 6 / vista.k, 0, 6.283); ctx.stroke(); }
       if (n.capa === ultima || n.agrupados || enSug || (enCamino && enCamino.has(n.id)) || (nivel && nivel[n.id] <= 1) || (radial && this.dist[n.id] <= 1) || n.id === sobreRadial || vista.k > 2.2 || (n.destacado && activo && !nivel && !radial && !enCamino && !this.sugerencia)) rotulos.push(n);
     }
@@ -1849,6 +1872,8 @@ class VistaMapa extends ItemView {
     const huerf = nodos.filter((n) => n.grado === 0).length, sinTema = nodos.filter((n) => !n.propio && n.capa !== 0).length;
     const sinMot = this.D.aristas.filter(([a, b, m]) => !m && !this.base[a].fuente && !this.base[b].fuente).length;
     const rotas = this.D.nodos.filter((n) => n.fuente && n.rota).length, sinV = this.D.fuentes?.sinVinculo.length || 0;
+    const graves = this.D.nodos.filter((n) => this.grave(n)).length;
+    if (graves) new Notice(T('{0} nota(s) graves (rojo). Lo demás, en ámbar.', graves), 6000);
     if (this.D.fuentes?.carpetas.length) new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo · {3} referencia(s) rota(s) · {4} fuente(s) sin vínculo', huerf, sinTema, sinMot, rotas, sinV), 8000);
     else new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
     const fuera = this.D.config?.sinCapa.length || 0;
@@ -1930,12 +1955,31 @@ class AjustesMapa extends PluginSettingTab {
       .addText((t) => t.setValue(p.ajustes.propiedadFecha).onChange(async (v) => { p.ajustes.propiedadFecha = v.trim(); await p.guardar(); }));
     new Setting(c).setName(T('Sección de conexiones')).setDesc(T('Título de la sección al final de cada nota donde van los motivos aprobados («- [[nota]] — motivo»).'))
       .addText((t) => t.setValue(p.ajustes.seccionMotivos).onChange(async (v) => { p.ajustes.seccionMotivos = v.trim() || 'Conexiones'; await p.guardar(); }));
+    this.pintarIA(c);
+    new Setting(c).setName(T('Segunda revisión')).setDesc(T('Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.'))
+      .addToggle((t) => t.setValue(p.ajustes.dobleVerificacion).onChange(async (v) => { p.ajustes.dobleVerificacion = v; await p.guardar(); }));
+    new Setting(c).setName(T('Carpeta del registro de aprobaciones')).setDesc(T('Cada motivo aprobado deja constancia (fecha, citas, modelo) en <carpeta>/<fecha>/mapa-neuronal-motivos.md.'))
+      .addText((t) => t.setValue(p.ajustes.carpetaAuditoria).onChange(async (v) => { p.ajustes.carpetaAuditoria = v.trim(); await p.guardar(); }));
+    new Setting(c).setName(T('Restablecer')).setDesc(T('Vuelve a los valores por defecto.'))
+      .addButton((b) => b.setButtonText(T('Restablecer')).onClick(async () => { p.ajustes = Object.assign({}, AJUSTES_BASE); await p.guardar(); this.display(); }));
+    c.createEl('p', { cls: 'setting-item-description', text: T('Restablecer no borra la llave guardada en este dispositivo.') });
+    const pie = c.createEl('p', { cls: 'mn-pie' });
+    pie.appendText(`${NOMBRE} ${p.manifest?.version || ''} · Powered by`);
+    // El nombre de la marca va en una constante: la regla de mayúsculas del linter revisa
+    // los textos escritos a mano y no puede saber que «DBB Labs» es un nombre propio.
+    const enlace = pie.createEl('a', { href: 'https://dontbuybuild.cl', attr: { 'aria-label': `Powered by ${MARCA}` } });
+    enlace.createSpan({ cls: 'mn-marca-dbb' });
+  }
+  // [1.31] La sección de IA se dibuja a mano (llave en localStorage, botón de probar): sirve
+  // igual desde display() (Obsidian < 1.13) y como ítem `render` de getSettingDefinitions().
+  pintarIA(c) {
+    const p = this.plugin;
     new Setting(c).setName(T('Conecta tu inteligencia artificial (opcional)')).setHeading();
     c.createEl('p', { cls: 'setting-item-description', text: T('Para el botón de sugerir motivo. Usa tu propia llave de la API, se guarda solo en este dispositivo y no viaja por Sync ni por git. La IA propone; tú apruebas.') });
     const prov = p.ajustes.proveedorIA || 'claude', def = PROVEEDORES[prov];
     new Setting(c).setName(T('Proveedor')).setDesc(T('Elige con qué IA se generan los motivos y los resúmenes. Los controles de calidad (citas verificadas y tu aprobación) funcionan con todos.'))
       .addDropdown((d) => d.addOptions(Object.fromEntries(Object.entries(PROVEEDORES).map(([k, v]) => [k, v.nombre]))).setValue(prov)
-        .onChange(async (v) => { p.ajustes.proveedorIA = v; p.ajustes.modeloIA = PROVEEDORES[v].modelo; await p.guardar(); this.display(); }));
+        .onChange(async (v) => { p.ajustes.proveedorIA = v; p.ajustes.modeloIA = PROVEEDORES[v].modelo; await p.guardar(); this.refrescar(); }));
     if (def.llave) {
       // Pegar una llave en un campo de contraseña y no ver nada deja la duda de si quedó guardada.
       // El aviso va en la DESCRIPCIÓN de la fila, no en un evento del DOM: `PluginSettingTab` no
@@ -1948,7 +1992,7 @@ class AjustesMapa extends PluginSettingTab {
       fila.addText((t) => { t.inputEl.type = 'password';
         t.setPlaceholder(p.app.loadLocalStorage(CLAVE_IA(prov)) ? T('guardada') : T('pega la llave aquí'));
         t.onChange((v) => { p.app.saveLocalStorage(CLAVE_IA(prov), v.trim() || null); decir(); }); })
-        .addButton((b) => b.setButtonText(T('Borrar')).onClick(() => { p.app.saveLocalStorage(CLAVE_IA(prov), null); this.display(); new Notice(T('Llave borrada de este dispositivo')); }));
+        .addButton((b) => b.setButtonText(T('Borrar')).onClick(() => { p.app.saveLocalStorage(CLAVE_IA(prov), null); this.refrescar(); new Notice(T('Llave borrada de este dispositivo')); }));
     } else new Setting(c).setName(T('Sin llave')).setDesc(T(def.ayuda));
     if (prov === 'local') new Setting(c).setName(T('Dirección del servidor local')).setDesc(T('Compatible con OpenAI. Ollama usa http://localhost:11434/v1/chat/completions.'))
       .addText((t) => t.setValue(p.ajustes.urlLocal).onChange(async (v) => { p.ajustes.urlLocal = v.trim() || PROVEEDORES.local.url; await p.guardar(); }));
@@ -1969,19 +2013,44 @@ class AjustesMapa extends PluginSettingTab {
         } catch (e) { new Notice(e.message, 10000); }
         b.setButtonText(T('Probar')).setDisabled(false);
       }));
-    new Setting(c).setName(T('Segunda revisión')).setDesc(T('Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.'))
-      .addToggle((t) => t.setValue(p.ajustes.dobleVerificacion).onChange(async (v) => { p.ajustes.dobleVerificacion = v; await p.guardar(); }));
-    new Setting(c).setName(T('Carpeta del registro de aprobaciones')).setDesc(T('Cada motivo aprobado deja constancia (fecha, citas, modelo) en <carpeta>/<fecha>/mapa-neuronal-motivos.md.'))
-      .addText((t) => t.setValue(p.ajustes.carpetaAuditoria).onChange(async (v) => { p.ajustes.carpetaAuditoria = v.trim(); await p.guardar(); }));
-    new Setting(c).setName(T('Restablecer')).setDesc(T('Vuelve a los valores por defecto.'))
-      .addButton((b) => b.setButtonText(T('Restablecer')).onClick(async () => { p.ajustes = Object.assign({}, AJUSTES_BASE); await p.guardar(); this.display(); }));
-    c.createEl('p', { cls: 'setting-item-description', text: T('Restablecer no borra la llave guardada en este dispositivo.') });
-    const pie = c.createEl('p', { cls: 'mn-pie' });
-    pie.appendText(`${NOMBRE} ${p.manifest?.version || ''} · Powered by`);
-    // El nombre de la marca va en una constante: la regla de mayúsculas del linter revisa
-    // los textos escritos a mano y no puede saber que «DBB Labs» es un nombre propio.
-    const enlace = pie.createEl('a', { href: 'https://dontbuybuild.cl', attr: { 'aria-label': `Powered by ${MARCA}` } });
-    enlace.createSpan({ cls: 'mn-marca-dbb' });
+  }
+  refrescar() { if (typeof this.update === 'function') this.update(); else this.display(); }
+  // Obsidian 1.13+: los ajustes también como definiciones, para que aparezcan en la búsqueda
+  // de ajustes. Los valores viven en plugin.ajustes, no en plugin.settings.
+  getControlValue(clave) { return this.plugin.ajustes[clave]; }
+  async setControlValue(clave, valor) {
+    const p = this.plugin;
+    if (typeof valor === 'string' && clave !== 'capas' && clave !== 'carpetas' && clave !== 'temas' && clave !== 'excluir' && clave !== 'carpetasFuentes') valor = valor.trim();
+    if (clave === 'seccionMotivos' && !valor) valor = 'Conexiones';
+    if (clave === 'maxPorCapa') valor = Number(valor) || 150;
+    p.ajustes[clave] = valor; await p.guardar();
+  }
+  getSettingDefinitions() {
+    const area = (nombre, desc, key, rows) => ({ name: T(nombre), desc: T(desc), control: { type: 'textarea', key, rows } });
+    const texto = (nombre, desc, key) => ({ name: T(nombre), desc: desc ? T(desc) : undefined, control: { type: 'text', key } });
+    const interruptor = (nombre, desc, key) => ({ name: T(nombre), desc: T(desc), control: { type: 'toggle', key } });
+    return [
+      area('Capas', 'Una por línea, de izquierda a derecha: «Nombre | descripción».', 'capas', 5),
+      area('Carpetas → capa', 'Una por línea: «carpeta = número de capa» (0 es la primera). Gana la carpeta más específica. Lo que no esté aquí no aparece.', 'carpetas', 8),
+      texto('Propiedad de tema', 'Propiedad del frontmatter que agrupa y colorea las notas. Vacío = sin temas.', 'propiedadTema'),
+      area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7),
+      area('Excluir notas', 'Nombres de nota (sin .md), separados por coma o línea. Útil para notas que enlazan a todo.', 'excluir', 2),
+      area('Carpetas de fuentes', 'Una por línea. «carpeta» cuenta cada archivo; «carpeta/*» agrupa cada subcarpeta en un nodo (por ejemplo, un día). Vacío = sin fuentes.', 'carpetasFuentes', 3),
+      { name: T('Mostrar fuentes citadas'), desc: T('Las fuentes son los archivos de esas carpetas que tus notas citan por su ruta. «Bajo demanda»: aparecen al tocar la nota que las cita. «Todas»: siempre en la primera capa.'),
+        control: { type: 'dropdown', key: 'fuentes', options: { no: T('No mostrar'), demanda: T('Bajo demanda'), todas: T('Todas') } } },
+      { name: T('Notas visibles por capa'), desc: T('En vaults grandes, cada capa muestra sus notas más conectadas. Las demás aparecen al buscarlas o al tocarlas desde el panel.'),
+        control: { type: 'slider', key: 'maxPorCapa', min: 30, max: 600, step: 10, defaultValue: 150 } },
+      interruptor('Seguir la nota activa', 'Al abrir una nota, el mapa la enfoca.', 'seguirActiva'),
+      interruptor('Animación', 'Pulsos de luz que viajan por los enlaces. Solo mientras el mapa está visible; se apaga si el sistema pide reducir movimiento.', 'animacion'),
+      texto('Carpeta para exportar imágenes', null, 'carpetaExport'),
+      texto('Propiedad de enlaces externos', 'Propiedades del frontmatter con enlaces web, separadas por coma. Acepta «Título | https://…», «https://…» y «usuario/repo». Vacío = no se muestran.', 'propiedadEnlaces'),
+      texto('Propiedad de fecha de modificación', 'Si la escribes, al aprobar un motivo o un resumen se pone la fecha de hoy en esa propiedad de la nota. Vacío = el plugin no toca el frontmatter.', 'propiedadFecha'),
+      texto('Sección de conexiones', 'Título de la sección al final de cada nota donde van los motivos aprobados («- [[nota]] — motivo»).', 'seccionMotivos'),
+      { name: T('Conecta tu inteligencia artificial (opcional)'), aliases: ['IA', 'AI', 'API key', 'Claude', 'OpenAI', 'Gemini', 'Ollama'],
+        render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty(); el.addClass('mn-ajuste-ia'); this.pintarIA(el); } },
+      interruptor('Segunda revisión', 'Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.', 'dobleVerificacion'),
+      texto('Carpeta del registro de aprobaciones', 'Cada motivo aprobado deja constancia (fecha, citas, modelo) en <carpeta>/<fecha>/mapa-neuronal-motivos.md.', 'carpetaAuditoria'),
+    ];
   }
   hide() { this.plugin.refrescarVistas(); }
 }
