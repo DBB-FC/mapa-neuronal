@@ -4,6 +4,11 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.29 (19.09.2026): el móvil, visto en un iPhone real —
+ *   · Los botones de zoom ya no quedan bajo la barra de Obsidian en el teléfono.
+ *   · Los chips de tema van en una sola fila con desplazamiento cuando no caben.
+ *   · Elegir un tema atenúa el resto en vez de esconderlo: se ven los puentes hacia afuera.
+ *   · Las tres notas más conectadas de cada capa llevan rótulo permanente.
  * v1.28 (18.09.2026): lo que un usuario tuvo que resolver solo, resuelto en el plugin —
  *   · Exportar datos (JSON con reglas de conteo + CSV de enlaces) para análisis afuera.
  *   · Hub explícito por tema (`hub: true`); solo la hub lleva el nombre del tema, sus hermanas
@@ -1029,6 +1034,10 @@ class VistaMapa extends ItemView {
     const orden = Object.fromEntries(Object.keys(this.D.temas).map((t, i) => [t, i]));
     const posBase = new Map(this.D.nodos.map((x, i) => [x, i]));
     this.N = N.sort((p, q) => p.capa - q.capa || (orden[p.tema] ?? 99) - (orden[q.tema] ?? 99) || (posBase.get(p) ?? 0) - (posBase.get(q) ?? 0));
+    // Las tres notas más conectadas de cada capa (menos la última, que ya va rotulada) llevan
+    // su nombre siempre: son las que orientan el mapa sin tocar nada.
+    N.forEach((n) => { n.destacado = false; });
+    for (let c = 0; c < ultima; c++) N.filter((n) => n.capa === c && !n.fuente && !n.virtual).sort((p, q) => this.ady[q.id].length - this.ady[p.id].length).slice(0, 3).forEach((n) => { if (this.ady[n.id].length >= 3) n.destacado = true; });
     // Revelado progresivo: cada capa muestra sus notas más conectadas; el resto se trae buscando o tocando.
     const max = Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150);
     this.ocultas = {};
@@ -1245,7 +1254,6 @@ class VistaMapa extends ItemView {
     if (this.dist) { if (!(n.id in this.dist)) return false; }
     else if (n.oculto) return false;
     return (!this.conEnlace || (n.enlaces && n.enlaces.length) || n.capa === this.D.capas.length - 1)
-      && (!this.solo || n.tema === this.solo)
       && (!this.filtro || (n.titulo + ' ' + n.id).toLowerCase().includes(this.filtro));
   }
   problemas(n) {
@@ -1336,7 +1344,10 @@ class VistaMapa extends ItemView {
         ctx.fillStyle = TENUE_ROTULO; ctx.font = f(400, 10.5);
         const cuenta = `${T('{0} nodos', c.n)}${this.ocultas?.[i] ? T(' · +{0} ocultas', this.ocultas[i]) : ''}`;
         const descripcion = c.def[2] && !this.angosto() ? ' · ' + c.def[2] : ''; // en el celular no cabe
-        ctx.fillText(acortar(ctx.measureText(cuenta + descripcion).width > hueco ? cuenta : cuenta + descripcion), lx, c.y0 - 8);
+        const sub = acortar(ctx.measureText(cuenta + descripcion).width > hueco ? cuenta : cuenta + descripcion), ws = ctx.measureText(sub).width;
+        ctx.fillText(sub, lx, c.y0 - 8);
+        // [1.29] El subtítulo también reserva su sitio: un rótulo de la capa anterior lo tapaba.
+        cajas.push({ x: (i === ultima ? lx - ws : lx) - 4, y: c.y0 - 8 - 12 / sk, w: ws + 8, h: 16 / sk });
         ctx.textAlign = 'left';
       });
     }
@@ -1370,6 +1381,9 @@ class VistaMapa extends ItemView {
         continue;
       }
       const contiguas = Math.abs(A.capa - B.capa) === 1, tenue = this.reciente && !(this.activo(A) && this.activo(B));
+      // Tema elegido: lo que no lo toca se atenúa en vez de desaparecer. Antes el chip
+      // escondía el resto del mapa y con él los puentes del tema hacia afuera.
+      if (this.solo && !nivel && A.tema !== this.solo && B.tema !== this.solo) { if (contiguas) curva(A, B, 0.015, 0.5, tono); continue; }
       // Largo alcance: solo los enlaces que saltan dos capas o más, bien visibles. Es el positivo
       // de los vacíos: dónde dos mitades del vault sí se tocan de punta a punta.
       if (this.largos && !nivel) { if (Math.abs(A.capa - B.capa) >= 2) curva(A, B, 0.75, 1.3 + grueso, tono); else if (contiguas) curva(A, B, 0.03, 0.5, tono); continue; }
@@ -1405,7 +1419,7 @@ class VistaMapa extends ItemView {
     for (const n of this.N) {
       if (!this.visible(n)) continue;
       const enSug = this.sugerencia && (this.rep[this.sugerencia[0]] === n.id || this.rep[this.sugerencia[1]] === n.id);
-      const activo = enCamino ? enCamino.has(n.id) : this.sugerencia ? enSug : (!nivel || n.id in nivel) && this.activo(n);
+      const activo = (enCamino ? enCamino.has(n.id) : this.sugerencia ? enSug : (!nivel || n.id in nivel) && this.activo(n)) && (!this.solo || n.tema === this.solo || n.id === centro);
       const base = n.capa === ultima || n.agrupados ? 6.5 + Math.min(8, Math.sqrt(n.agrupados || 0) * 1.6) : 1.8 + Math.min(4.2, Math.sqrt(n.grado) * 0.6);
       const r = (radial && n.id === this.foco ? 9 : base) / sk;
       ctx.fillStyle = rgba(color(n.tema), activo ? 1 : 0.16); ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 6.283); ctx.fill();
@@ -1416,7 +1430,7 @@ class VistaMapa extends ItemView {
       if (n.enlaces && n.enlaces.length) { ctx.strokeStyle = rgba('#FFFFFF', activo ? 0.75 : 0.2); ctx.lineWidth = 1 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5 / vista.k, 0, 6.283); ctx.stroke(); }
       if (this.salud && this.problemas(n).length) { ctx.strokeStyle = '#FF6B6B'; ctx.lineWidth = 1.6 / vista.k; ctx.setLineDash([3 / vista.k, 2 / vista.k]); ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 / vista.k, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
       if (n.id === centro || (this.eligiendo && this.eligiendo.desde === n.id)) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 6 / vista.k, 0, 6.283); ctx.stroke(); }
-      if (n.capa === ultima || n.agrupados || enSug || (enCamino && enCamino.has(n.id)) || (nivel && nivel[n.id] <= 1) || (radial && this.dist[n.id] <= 1) || n.id === sobreRadial || vista.k > 2.2) rotulos.push(n);
+      if (n.capa === ultima || n.agrupados || enSug || (enCamino && enCamino.has(n.id)) || (nivel && nivel[n.id] <= 1) || (radial && this.dist[n.id] <= 1) || n.id === sobreRadial || vista.k > 2.2 || (n.destacado && activo && !nivel && !radial && !enCamino && !this.sugerencia)) rotulos.push(n);
     }
     // Las importantes se colocan primero y ninguna se dibuja encima de otra: se compara la caja
     // real de cada rótulo, no una distancia aproximada. Antes, con el panel abierto, las

@@ -15,6 +15,12 @@
 .mn-punto { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; background: var(--mn-color, #C9D1FF); }
 .mn-raiz input.mn-buscar { font: 12px var(--font-monospace); color: #E6EAFF; background: rgba(8,12,32,.82); border: 1px solid rgba(170,185,255,.22); border-radius: 6px; padding: 4px 9px; flex: 0 1 160px; min-width: 0; height: auto; }
 .mn-zoom { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; z-index: 2; }
+/* [1.29] En el teléfono la barra de Obsidian tapa la esquina inferior: los botones suben. */
+.is-phone .mn-zoom { bottom: calc(68px + var(--safe-area-inset-bottom, 0px)); }
+/* [1.29] Chips en una sola fila con desplazamiento cuando no caben. */
+.is-phone .mn-chips, .mn-raiz.angosto .mn-chips { flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+.is-phone .mn-chips::-webkit-scrollbar, .mn-raiz.angosto .mn-chips::-webkit-scrollbar { display: none; }
+.is-phone .mn-chips .mn-chip, .mn-raiz.angosto .mn-chips .mn-chip { flex: none; white-space: nowrap; }
 .mn-raiz .mn-zoom button { font: 600 15px var(--font-monospace); color: #E6EAFF; background: rgba(8,12,32,.85); border: 1px solid rgba(170,185,255,.22); border-radius: 8px; width: 38px; height: 38px; padding: 0; box-shadow: none; }
 .mn-guia { position: absolute; left: 12px; bottom: 14px; max-width: min(520px, calc(100% - 150px)); color: rgba(230,234,255,.6); font: 12px/1.4 var(--font-interface); z-index: 1; }
 .mn-panel { position: absolute; right: 12px; top: 92px; bottom: 60px; width: min(380px, calc(100% - 24px)); background: rgba(10,15,38,.94); border: 1px solid rgba(170,185,255,.2); border-radius: 10px; display: none; flex-direction: column; overflow: hidden; z-index: 3; }
