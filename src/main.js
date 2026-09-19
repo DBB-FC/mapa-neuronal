@@ -4,6 +4,8 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.29.1 (19.09.2026): el asistente con un vault anidado (wiki/…) muestra las carpetas configuradas
+ *   con su cuenta real y ya no ofrece la carpeta madre como «No mostrar».
  * v1.29 (19.09.2026): el móvil, visto en un iPhone real —
  *   · Los botones de zoom ya no quedan bajo la barra de Obsidian en el teléfono.
  *   · Los chips de tema van en una sola fila con desplazamiento cuando no caben.
@@ -401,6 +403,7 @@ const EN = {
   'Estructura': 'Structure',
   'índices y mapas': 'indexes and maps',
   'La capa actual de cada carpeta ya viene marcada.': "Each folder's current layer is already selected.",
+  'Mis capas actuales': 'My current layers',
 };
 let _es = null; // se resuelve una vez: Obsidian pide reiniciar para cambiar de idioma
 const enEspanol = () => {
@@ -783,14 +786,27 @@ class AsistenteCapas extends Modal {
     this.plantilla = actual ? 'actual' : 'llm';
     if (actual) {
       const cfg = leerAjustes(this.plugin.ajustes), fuentesCfg = carpetasFuentesDe(this.plugin.ajustes).map((x) => x.ruta);
-      for (const [carpeta, n] of cfg.carpetas) { const fila = filas.find((f) => f.carpeta === carpeta); if (fila) fila.capa = n; else filas.push({ carpeta, notas: 0, capa: n }); }
+      // [1.29.1] Las carpetas configuradas que la detección no separó (wiki/personas dentro
+      // de «wiki») se agregan con su cuenta real, y a la carpeta madre se le restan: si queda
+      // en cero, desaparece. Antes salía «wiki · 148 notas · No mostrar» y cada hija con 0.
+      const archivos = this.app.vault.getMarkdownFiles();
+      const cuenta = (c) => archivos.filter((f) => f.path === c || f.path.startsWith(c + '/')).length;
+      for (const [carpeta, n] of cfg.carpetas) {
+        const fila = filas.find((f) => f.carpeta === carpeta);
+        if (fila) { fila.capa = n; continue; }
+        const notas = cuenta(carpeta);
+        for (const f of filas) if (f.carpeta !== '/' && carpeta.startsWith(f.carpeta + '/')) f.notas = Math.max(0, f.notas - notas);
+        filas.push({ carpeta, notas, capa: n });
+      }
+      for (let i = filas.length - 1; i >= 0; i--) if (filas[i].notas === 0 && !filas[i].archivos && !cfg.carpetas.some(([c]) => c === filas[i].carpeta)) filas.splice(i, 1);
+      filas.sort((a, b) => a.carpeta.localeCompare(b.carpeta));
       for (const carpeta of fuentesCfg) { const fila = filas.find((f) => f.carpeta === carpeta); if (fila) fila.capa = -2; }
       for (const fila of filas) if (!cfg.carpetas.some(([c]) => c === fila.carpeta) && !fuentesCfg.includes(fila.carpeta) && fila.capa >= 0) fila.capa = -1;
       c.createEl('p', { cls: 'setting-item-description', text: T('La capa actual de cada carpeta ya viene marcada.') });
     }
     const capasDe = () => plantillas.find((p) => p[0] === this.plantilla)[2];
     new Setting(c).setName(T('Plantilla de capas')).addDropdown((d) => {
-      d.addOptions(Object.fromEntries(plantillas.map(([id, nombre, capas]) => [id, nombre ? T(nombre) : capas.map((x) => x[0]).join(' → ')]))).setValue(this.plantilla)
+      d.addOptions(Object.fromEntries(plantillas.map(([id, nombre, capas]) => [id, nombre ? T(nombre) : T('Mis capas actuales') + ': ' + capas.map((x) => x[0]).join(' → ')]))).setValue(this.plantilla)
         .onChange((v) => { this.plantilla = v; const n = capasDe().length; for (const f of filas) if (f.capa >= n) f.capa = n - 1; pintarFilas(); });
     });
     const cuerpo = c.createDiv();

@@ -65,6 +65,21 @@ const menuFalso = () => ({ items: [], addItem(f) { const c = { titulo: '', setTi
   const Dn = await construir(appN, Object.assign({}, AJUSTES_BASE, { capas: 'E | e\nT | t', carpetas: 'wiki/diario = 0\nwiki/temas = 1', fuentes: 'no' }));
   p.igual('anidado: solo cuenta lo suelto dentro del árbol mapeado', Dn.config.sinCapa, ['wiki/suelta.md']);
 
+  // ── 1.29.1: asistente con vault anidado — cuentas reales y sin la carpeta madre ──
+  {
+    const notasN = {}; for (let i = 0; i < 20; i++) notasN[`wiki/diario/d${i}.md`] = 'x'; for (let i = 0; i < 5; i++) notasN[`wiki/temas/t${i}.md`] = 'y';
+    notasN['wiki/suelta.md'] = 'z'; notasN['prompts/p.md'] = 'p';
+    const { app: aN } = vaultSimulado(notasN);
+    const plN = new Plugin(); plN.app = aN; plN.ajustes = Object.assign({}, AJUSTES_BASE, { capas: 'E | e\nT | t', carpetas: 'wiki/diario = 0\nwiki/temas = 1', configurado: true }); plN.guardar = async () => {};
+    const asN = new AsistenteCapas(aN, plN); asN.contentEl = el(); ajustesUI.length = 0; asN.onOpen();
+    const filaN = (nombre) => { const s = ajustesUI.find((x) => x.nombre === nombre); return s ? s.campos?.[0]?.valor : undefined; };
+    const descN = (nombre) => { const s = ajustesUI.find((x) => x.nombre === nombre); return s ? s.desc : undefined; };
+    p.igual('wiki/diario aparece con su cuenta real', descN('wiki/diario'), '20 notes');
+    p.igual('wiki/temas también', descN('wiki/temas'), '5 notes');
+    p.cierto('la carpeta madre wiki queda solo con lo suelto, o desaparece', descN('wiki') === undefined || descN('wiki') === '1 note');
+    p.igual('la capa configurada viene marcada', filaN('wiki/temas'), '1');
+  }
+
   // ── 1.29: el chip de tema atenúa, no esconde; y las notas más conectadas llevan rótulo ──
   {
     const { app: a9 } = vaultSimulado({ ...NOTAS });
