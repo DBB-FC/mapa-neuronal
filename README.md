@@ -95,7 +95,9 @@ Open it with the command **Open neural map** (`Cmd/Ctrl+P`) or the brain icon in
 ## First run, in one minute
 
 1. **A wizard lists your folders** with a proposed layer for each one (Input / Entities /
-   Knowledge / Topics / Don't show). Change what looks wrong and press Apply.
+   Knowledge / Topics / Don't show). Change what looks wrong and press Apply. Up top you can pick
+   another layer template: LLM wiki, professional (legal, accounting), academic or Zettelkasten.
+   Open it again later and it starts from the layers you already have.
 2. **Click any note.** The side panel names its layer, its topic, a two-line summary and every
    link with its reason.
 3. **`···` → Path between two notes**, pick two, and read the chain.
@@ -247,9 +249,35 @@ in a browser.
 | **Source folders** | One per line. If your notes cite files by path (`raw/articles/x.md`, a PDF, a day's folder), those files appear as sources. `folder/*` groups each subfolder into one node. Empty by default: with no folders, the map is the one you know. |
 | **Show cited sources** | `On demand`: sources appear when you tap the note that cites them and leave with it. `All`: always in the first layer. `Do not show`. If you already had them on, you stay on `All`. |
 | **Connections section** | The heading at the end of each note where approved reasons are written. |
+| **`hub: true`** (frontmatter) | In the last layer, the note that carries the topic name on the map. When several notes share a topic there, only the hub is labelled with the topic; the others keep their title. Without the property, it is the first one. |
+| **Reload settings from data.json** (command) | If you edit `data.json` by hand, read it again without restarting Obsidian. |
+| **Export data (JSON and CSV)** (tools) | The graph exactly as the plugin counts it: nodes, links with reason and sentence, and the counting rules. For Python, spreadsheets or Graphify. |
+| **Only long-range links** (tools) | Shows only the links that jump two layers or more: where two halves of the vault touch end to end. |
 | **External links property** | Frontmatter properties holding web links (`Title \| https://…`, `https://…`, `user/repo`). Empty = the section never appears. Only `http`/`https` are opened. |
 | **Last-modified property** | If set, approving a reason or a summary also writes today's date in that property. Empty by default: the plugin never touches your frontmatter. |
 | **Animation** | Light pulses travelling along the links. Only while the map is visible, and off if your system asks for reduced motion. |
+
+</details>
+
+<details>
+<summary><b>How it counts</b> — what a node is, what a link is, so the numbers add up</summary>
+
+A user reimplemented the engine in Python to predict the counts before touching their vault, and
+they matched. These are the rules, written once (they also ship inside the exported JSON):
+
+- **Node:** every `.md` file inside a folder assigned to a layer, minus the excluded ones. The most
+  specific folder wins. Sources cited by path do not count as notes.
+- **Link:** an **undirected** pair of notes on the map joined by at least one resolved
+  `[[wikilink]]`. A→B and B→A are one link. Self-links and links to notes off the map are ignored.
+- **Reason:** the text of `- [[note]] — reason` in the connections section; failing that, the first
+  body line where the link appears.
+- **Topic:** the topic frontmatter property; if missing, the most frequent topic among its neighbours.
+- **Hub:** per topic, the last-layer note with `hub: true`; if none has it, the first one in that
+  layer with the topic declared.
+- **Order within a layer:** by topic, then by the weighted barycentre of its neighbours (adjacent
+  layers weigh 1, distant ones 1/distance), six passes.
+- **Off the map:** notes that fall in no folder with a layer are counted in the header and flagged
+  on load, as are configured folders that hold no notes.
 
 </details>
 

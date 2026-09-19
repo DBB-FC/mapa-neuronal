@@ -22,12 +22,12 @@ const simulado = {
 };
 const cargar = () => {
   const m = { exports: {} };
-  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { EN, T, CAPAS_ESTANDAR, PROVEEDORES };')(
+  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { EN, T, CAPAS_ESTANDAR, PROVEEDORES, PLANTILLAS };')(
     (n) => (n === 'obsidian' ? simulado : require(n)), m, m.exports);
   return m.exports.__t;
 };
 
-const { EN, CAPAS_ESTANDAR, PROVEEDORES } = cargar();
+const { EN, CAPAS_ESTANDAR, PROVEEDORES, PLANTILLAS } = cargar();
 
 // Claves usadas: el primer argumento de cada T(, incluidos los ternarios.
 const usadas = new Set();
@@ -51,6 +51,7 @@ for (let i = 0; (i = texto.indexOf('T(', i)) !== -1; i += 2) {
 // Claves que llegan por variable: area(nombre, desc), CAPAS_ESTANDAR, PROVEEDORES.
 for (const mt of texto.matchAll(/area\((?:T\()?['"]([^'"]+)['"]\)?,\s*['"]((?:[^'"\\]|\\.)*)['"]/g)) { usadas.add(mt[1]); usadas.add(mt[2]); }
 for (const par of CAPAS_ESTANDAR) for (const x of par) usadas.add(x);
+for (const [, nombre, capas] of PLANTILLAS) { usadas.add(nombre); for (const par of capas) for (const x of par) usadas.add(x); }
 for (const def of Object.values(PROVEEDORES)) { usadas.add(def.ayuda); usadas.add(def.modeloAyuda); }
 
 const faltan = [...usadas].filter((k) => EN[k] === undefined);

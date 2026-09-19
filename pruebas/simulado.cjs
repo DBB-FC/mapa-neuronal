@@ -12,10 +12,11 @@ const Componente = class {
 };
 
 function obsidianSimulado() {
-  const avisos = [], filas = [];
+  const avisos = [], filas = [], ajustesUI = [];
   return {
     avisos,
     filas,   // nombres de los Setting creados, en orden: sirve para ver si la pantalla se cortó
+    ajustesUI, // los Setting completos, con sus campos: sirve para leer qué valor arrancó un menú
     modulo: {
       Plugin: class extends Componente {
         constructor() { super(); this.comandos = []; this.vistas = []; this.ribbon = []; this.pestanas = []; this._datos = null; this.manifest = { id: 'mapa-neuronal', version: '0.0.0-prueba' }; }
@@ -33,7 +34,7 @@ function obsidianSimulado() {
       // como la clase real, o las pruebas pasan sobre una pantalla rota.
       PluginSettingTab: class { constructor(app, plugin) { this.app = app; this.plugin = plugin; } },
       Setting: class {
-        constructor(c) { this.c = c; }
+        constructor(c) { this.c = c; this.campos = []; ajustesUI.push(this); }
         setName(v) { this.nombre = v; filas.push(v); return this; }
         setDesc(v) { this.desc = v; return this; }
         setHeading() { return this; }
@@ -41,7 +42,7 @@ function obsidianSimulado() {
         addTextArea(f) { f(campo()); return this; }
         addToggle(f) { f(campo()); return this; }
         addSlider(f) { f(campo()); return this; }
-        addDropdown(f) { f(campo()); return this; }
+        addDropdown(f) { const d = campo(); f(d); this.campos.push(d); return this; }
         addButton(f) { f(campo()); return this; }
       },
       Menu: class { constructor() { this.items = []; } addItem(f) { const c = campo(); this.items.push(c); f(c); return this; } addSeparator() { this.items.push('---'); return this; } showAtMouseEvent() {} },
@@ -67,8 +68,8 @@ const el = () => ({
   getContext: () => contexto2D(),
   addEventListener() {},
 });
-const campo = () => { const o = {}; for (const k of ['setValue', 'onChange', 'setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'onClick', 'setIcon', 'setChecked', 'setDisabled', 'setTooltip']) o[k] = () => o;
-  o.setTitle = (v) => { o.titulo = v; return o; }; o.inputEl = { type: '', rows: 0, addClass() {} }; return o; };
+const campo = () => { const o = {}; for (const k of [ 'onChange', 'setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'onClick', 'setIcon', 'setChecked', 'setDisabled', 'setTooltip']) o[k] = () => o;
+  o.setValue = (v) => { o.valor = v; return o; }; o.setTitle = (v) => { o.titulo = v; return o; }; o.inputEl = { type: '', rows: 0, addClass() {} }; return o; };
 // Lienzo falso: cuenta las llamadas para saber que de verdad dibujó.
 const contexto2D = () => { const c = { llamadas: 0 }; const nada = () => { c.llamadas++; }; for (const k of ['beginPath', 'moveTo', 'lineTo', 'arc', 'fill', 'stroke', 'fillRect', 'strokeRect', 'setLineDash', 'bezierCurveTo', 'save', 'restore', 'translate', 'scale', 'clearRect', 'fillText', 'closePath', 'quadraticCurveTo',
     'setTransform', 'resetTransform', 'rotate', 'clip', 'rect', 'roundRect', 'arcTo', 'ellipse', 'drawImage', 'strokeText']) c[k] = nada; c.createLinearGradient = () => ({ addColorStop() {} }); c.createRadialGradient = () => ({ addColorStop() {} }); c.measureText = (t) => ({ width: String(t).length * 6 }); return c; };
@@ -136,9 +137,9 @@ function cargarPlugin(rutaMain) {
   global.document = global.document || { visibilityState: 'visible' };
   global.getComputedStyle = global.getComputedStyle || (() => ({ getPropertyValue: () => '' }));
   global.ResizeObserver = global.ResizeObserver || class { observe() {} disconnect() {} };
-  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { construir, VistaMapa, AsistenteCapas, AjustesMapa, AJUSTES_BASE, PROVEEDORES, CAPAS_ESTANDAR, EN, T, enlacesDe, detectarCarpetas, leerAjustes, CLAVE_IA, citasDe, carpetasFuentesDe, nodoFuenteDe, inventarioFuentes, detectarFuentes, subcarpetasFechadas };')(
+  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { construir, VistaMapa, AsistenteCapas, AjustesMapa, AJUSTES_BASE, PROVEEDORES, CAPAS_ESTANDAR, EN, T, enlacesDe, detectarCarpetas, leerAjustes, CLAVE_IA, citasDe, carpetasFuentesDe, nodoFuenteDe, inventarioFuentes, detectarFuentes, subcarpetasFechadas, PLANTILLAS, REGLAS, plantillaActual };')(
     (n) => (n === 'obsidian' ? sim.modulo : require(n)), m, m.exports);
-  return { Plugin: m.exports.default || m.exports, interno: m.exports.__t, avisos: sim.avisos, filas: sim.filas };
+  return { Plugin: m.exports.default || m.exports, interno: m.exports.__t, avisos: sim.avisos, filas: sim.filas, ajustesUI: sim.ajustesUI };
 }
 
 /* Marcador de pruebas mínimo: cuenta y explica la primera diferencia. */

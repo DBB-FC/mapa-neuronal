@@ -95,7 +95,9 @@ Se abre con el comando **Abrir mapa neuronal** (`Cmd/Ctrl+P`) o con el ícono de
 ## La primera vez, en un minuto
 
 1. **Un asistente lista tus carpetas** con una capa propuesta para cada una (Entrada / Entidades /
-   Conocimiento / Temas / No mostrar). Cambia lo que se vea mal y aprieta Aplicar.
+   Conocimiento / Temas / No mostrar). Cambia lo que se vea mal y aprieta Aplicar. Arriba puedes
+   elegir otra plantilla de capas: LLM wiki, profesional (jurídico, contable), académico o
+   Zettelkasten. Si vuelves a abrirlo más tarde, arranca con las capas que ya tienes.
 2. **Toca cualquier nota.** El panel lateral nombra su capa, su tema, un resumen de dos líneas y
    cada enlace con su motivo.
 3. **`···` → Camino entre dos notas**, eliges dos y lees la cadena.
@@ -247,9 +249,36 @@ navegador.
 | **Carpetas de fuentes** | Una por línea. Si tus notas citan archivos por su ruta (`raw/articles/algo.md`, un PDF, una carpeta de un día), esos archivos aparecen como fuentes. `carpeta/*` agrupa cada subcarpeta en un nodo. Vacío por defecto: sin carpetas, el mapa es el de siempre. |
 | **Mostrar fuentes citadas** | `Bajo demanda`: las fuentes aparecen al tocar la nota que las cita y se van con ella. `Todas`: siempre en la primera capa. `No mostrar`. Quien ya las tenía encendidas sigue en `Todas`. |
 | **Sección de conexiones** | El título al final de cada nota donde se escriben los motivos aprobados. |
+| **`hub: true`** (frontmatter) | En la última capa, la nota que lleva el nombre del tema en el mapa. Si varias notas comparten tema allí, solo la hub se rotula con el tema; las demás con su título. Sin la propiedad, es la primera. |
+| **Recargar ajustes desde data.json** (comando) | Si editas `data.json` a mano, vuelve a leerlo sin reiniciar Obsidian. |
+| **Exportar datos (JSON y CSV)** (herramientas) | El grafo tal como el plugin lo cuenta: nodos, enlaces con motivo y frase, y las reglas de conteo. Para Python, hojas de cálculo o Graphify. |
+| **Solo enlaces de largo alcance** (herramientas) | Muestra solo los enlaces que saltan dos capas o más: dónde dos mitades del vault se tocan de punta a punta. |
 | **Propiedad de enlaces externos** | Propiedades del frontmatter con enlaces web (`Título \| https://…`, `https://…`, `usuario/repo`). Vacío = la sección no aparece nunca. Solo se abren `http`/`https`. |
 | **Propiedad de fecha de modificación** | Si la escribes, aprobar un motivo o un resumen también pone la fecha de hoy en esa propiedad. Vacía por defecto: el plugin no toca tu frontmatter. |
 | **Animación** | Pulsos de luz que viajan por los enlaces. Solo mientras el mapa está visible, y apagada si tu sistema pide reducir el movimiento. |
+
+</details>
+
+<details>
+<summary><b>Cómo se cuenta</b> — qué es un nodo, qué es un enlace, para que los números cuadren</summary>
+
+Un usuario reimplementó el motor en Python para predecir los conteos antes de tocar su vault, y
+le cuadraron. Estas son las reglas, escritas una sola vez (también van dentro del JSON exportado):
+
+- **Nodo:** cada archivo `.md` dentro de una carpeta asignada a una capa, menos los excluidos.
+  Gana la carpeta más específica. Las fuentes citadas por ruta no cuentan como notas.
+- **Enlace:** un par **no dirigido** de notas del mapa unidas por al menos un `[[wikilink]]`
+  resuelto. A→B y B→A son un solo enlace. Los auto-enlaces y los enlaces a notas fuera del mapa
+  se ignoran.
+- **Motivo:** el texto de `- [[nota]] — motivo` en la sección de conexiones; si no hay, la primera
+  línea del cuerpo donde aparece el enlace.
+- **Tema:** la propiedad de tema del frontmatter; si falta, el tema más frecuente entre sus vecinos.
+- **Hub:** por tema, la nota de la última capa con `hub: true`; si ninguna lo tiene, la primera de
+  esa capa con el tema declarado.
+- **Orden dentro de una capa:** por tema, luego por baricentro ponderado de sus vecinos (las capas
+  contiguas pesan 1, las lejanas 1/distancia), seis pasadas.
+- **Fuera del mapa:** las notas que no caen en ninguna carpeta con capa se cuentan en la cabecera
+  y se avisan al cargar, igual que las carpetas configuradas que no tienen notas.
 
 </details>
 

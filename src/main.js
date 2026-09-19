@@ -4,6 +4,16 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.28 (18.09.2026): lo que un usuario tuvo que resolver solo, resuelto en el plugin —
+ *   · Exportar datos (JSON con reglas de conteo + CSV de enlaces) para análisis afuera.
+ *   · Hub explícito por tema (`hub: true`); solo la hub lleva el nombre del tema, sus hermanas
+ *     su título; anillo en la hub; aviso en salud cuando varias notas comparten tema en la última capa.
+ *   · «archivos citados» en la cabecera, para no chocar con una capa llamada «Fuentes».
+ *   · Recargar ajustes desde data.json (comando y menú); el asistente arranca con la config actual.
+ *   · Validación: carpetas sin notas y notas fuera de toda capa se avisan y se cuentan.
+ *   · Solo enlaces de largo alcance (dos capas o más): el positivo de los vacíos.
+ *   · Baricentro ponderado: las capas lejanas también acomodan el orden vertical (peso 1/distancia).
+ *   · Plantillas de capas en el asistente: LLM wiki, profesional, académico, Zettelkasten.
  * v1.27.1 (17.09.2026): al aprobar un resumen, la ficha lo muestra en el acto con su etiqueta.
  * v1.27 (17.09.2026): fuentes por carpetas configurables y bajo demanda. Rutas con tildes y espacios;
  *   ficha de fuente con Abrir, «citada por» y salto a la cita; referencias rotas en salud; buscador
@@ -224,7 +234,6 @@ const EN = {
   'Fuentes citadas por ruta': 'Sources cited by path',
   'Detecté un LLM wiki (index.md y log.md con entradas fechadas): las carpetas marcadas como fuentes se mostrarán bajo demanda.': 'An LLM wiki was detected (index.md and log.md with dated entries): the folders marked as sources will show on demand.',
   '{0} archivo(s)': '{0} file(s)',
-  ' · {0} fuentes': ' · {0} sources',
   'Notas visibles por capa': 'Notes visible per layer',
   'En vaults grandes, cada capa muestra sus notas más conectadas. Las demás aparecen al buscarlas o al tocarlas desde el panel.':
     'In large vaults each layer shows its most connected notes. The rest appear when you search for them or open them from the panel.',
@@ -344,6 +353,49 @@ const EN = {
   'No encuentro la nota de origen': 'I cannot find the source note',
   'Abrir el mapa': 'Open the map',
   'Mostrar la nota actual en el mapa': 'Show the current note on the map',
+  // 1.28: exportar datos, hubs explícitos, validación de la config, largo alcance, plantillas
+  'Exportar datos (JSON y CSV)': 'Export data (JSON and CSV)',
+  'Datos guardados en {0}': 'Data saved to {0}',
+  ' · {0} archivos citados': ' · {0} cited files',
+  ' · {0} fuera del mapa': ' · {0} off the map',
+  'hub del tema: lleva el nombre del tema en el mapa': 'topic hub: it carries the topic name on the map',
+  'otras {0} nota(s) de este tema en la capa de temas; solo la hub lleva el nombre del tema. Para elegirla, pon `hub: true` en su frontmatter':
+    '{0} other note(s) of this topic in the topics layer; only the hub carries the topic name. To choose it, set `hub: true` in its frontmatter',
+  'Recargar ajustes desde data.json': 'Reload settings from data.json',
+  'Ajustes recargados desde data.json': 'Settings reloaded from data.json',
+  'Carpeta sin notas en el vault: {0}': 'Folder with no notes in the vault: {0}',
+  '{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».': '{0} note(s) outside every layer: they are not on the map. Check "Folders → layer".',
+  'Solo enlaces de largo alcance': 'Only long-range links',
+  '⇄ largo alcance': '⇄ long range',
+  'Plantilla de capas': 'Layer template',
+  'LLM wiki': 'LLM wiki',
+  'Profesional (jurídico, contable)': 'Professional (legal, accounting)',
+  'Académico': 'Academic',
+  'Zettelkasten': 'Zettelkasten',
+  'Conceptos': 'Concepts',
+  'definiciones canónicas': 'canonical definitions',
+  'quién dicta, fiscaliza, autoriza': 'who rules, audits, authorizes',
+  'Fuentes': 'Sources',
+  'leyes, circulares, manuales': 'laws, circulars, manuals',
+  'Aplicación': 'Application',
+  'guías, servicios, proyectos': 'guides, services, projects',
+  'hubs de dominio': 'domain hubs',
+  'Lecturas': 'Readings',
+  'papers y libros': 'papers and books',
+  'Notas de lectura': 'Reading notes',
+  'lo que subrayaste': 'what you underlined',
+  'ideas con nombre propio': 'ideas with a name of their own',
+  'Síntesis': 'Syntheses',
+  'ensayos y revisiones': 'essays and reviews',
+  'Fugaces': 'Fleeting',
+  'capturas rápidas': 'quick captures',
+  'Literatura': 'Literature',
+  'notas de lo leído': 'notes on what you read',
+  'Permanentes': 'Permanent',
+  'ideas propias, una por nota': 'your own ideas, one per note',
+  'Estructura': 'Structure',
+  'índices y mapas': 'indexes and maps',
+  'La capa actual de cada carpeta ya viene marcada.': "Each folder's current layer is already selected.",
 };
 let _es = null; // se resuelve una vez: Obsidian pide reiniciar para cambiar de idioma
 const enEspanol = () => {
@@ -520,11 +572,25 @@ async function construir(app, s) {
     if (tema && !cfg.temas[tema]) cfg.temas[tema] = [tema, PALETA[Object.keys(cfg.temas).length % PALETA.length]];
     nodos[f.path] = { id: f.path, capa, ruta: f.path, titulo: String(fm.title || f.basename).slice(0, 90), tema,
       propio: !!tema, updated: fm.updated ? String(fm.updated) : null, resumenAprobado: fm.resumen ? String(fm.resumen) : null,
-      enlaces: enlacesDe(fm, s) };
+      enlaces: enlacesDe(fm, s), hub: fm.hub === true || String(fm.hub).toLowerCase() === 'true' };
     porRuta[f.path] = f.path;
   }
+  // Validación de la config: carpetas que no tienen ninguna nota y notas que no caen en capa alguna.
+  // Antes desaparecían en silencio y el usuario inventaba una explicación.
+  const todas = app.vault.getMarkdownFiles();
+  const carpetasVacias = cfg.carpetas.map(([c]) => c).filter((c) => c !== '/' && c !== '' && !todas.some((f) => f.path === c || f.path.startsWith(c + '/')));
   const resueltos = app.metadataCache.resolvedLinks, sinMotivoPorNota = {}, frases = {}, citas = {};
   const carpetasF = carpetasFuentesDe(s), conFuentes = s.fuentes !== 'no' && s.fuentes !== false && carpetasF.length > 0;
+  const enFuentes = (r) => carpetasF.some((c) => r.startsWith(c.ruta + '/'));
+  // «Fuera de toda capa» solo cuenta dentro de los árboles que el usuario sí mapeó: si sus
+  // capas son wiki/diario, wiki/temas…, una nota en wiki/suelta.md es un hueco que le
+  // interesa; prompts/, docs/ o el index.md de la raíz están fuera a propósito. En el
+  // cerebro real eran 31 avisos falsos en cada carga.
+  // Si todas las capas son carpetas de primer nivel, el árbol mapeado es el vault entero.
+  const raices = new Set(cfg.carpetas.map(([c]) => (c === '/' || c === '' ? '/' : c.split('/')[0])));
+  const plano = cfg.carpetas.every(([c]) => !c.includes('/'));
+  const enArbolMapeado = (r) => plano || raices.has('/') || (r.includes('/') && raices.has(r.split('/')[0]));
+  const sinCapa = cfg.carpetas.length ? todas.filter((f) => capaDe(f.path) < 0 && enArbolMapeado(f.path) && !cfg.excluir.has(f.basename) && !enFuentes(f.path)).map((f) => f.path) : [];
   for (const id of Object.keys(nodos)) {
     const archivo = app.vault.getFileByPath(id);
     const texto = archivo ? await app.vault.cachedRead(archivo) : '';
@@ -593,14 +659,33 @@ async function construir(app, s) {
   const pos = {};
   const indexar = () => cols.forEach((c) => c.forEach((n, i) => (pos[n.id] = i / Math.max(c.length - 1, 1))));
   indexar();
+  // Baricentro ponderado: las capas vecinas mandan (peso 1) y las lejanas empujan con 1/distancia.
+  // Antes solo contaban las contiguas y un enlace L0→L4 no influía en nada: en vaults densos
+  // esas curvas largas cruzaban todo el mapa sin que el orden vertical las acomodara.
   for (let it = 0; it < 6; it++) cols.forEach((c, capa) => {
-    c.forEach((n) => { const vs = [...vecinos[n.id]].filter((v) => Math.abs(nodos[v].capa - capa) === 1).map((v) => pos[v]); n._b = vs.length ? vs.reduce((a, x) => a + x, 0) / vs.length : pos[n.id]; });
+    c.forEach((n) => {
+      let suma = 0, peso = 0;
+      for (const v of vecinos[n.id]) { const d = Math.abs(nodos[v].capa - capa); if (!d) continue; suma += pos[v] / d; peso += 1 / d; }
+      n._b = peso ? suma / peso : pos[n.id];
+    });
     c.sort((p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || p._b - q._b);
     indexar();
   });
   return { nodos: cols.flat(), aristas: [...aristas].map(([k, m]) => [...k.split('|'), m, frases[k] || null, citas[k] || null]), capas: cfg.capas, temas: cfg.temas,
-    fuentes: { carpetas: carpetasF, inventario: inventario.length, citadas, sinVinculo } };
+    fuentes: { carpetas: carpetasF, inventario: inventario.length, citadas, sinVinculo },
+    config: { carpetasVacias, sinCapa } };
 }
+
+// Las reglas de conteo, escritas una sola vez: van en el JSON exportado y en el README. Quien
+// reimplemente el motor (ya pasó: un usuario lo hizo en Python) tiene aquí el contrato.
+const REGLAS = {
+  nodo: 'Cada archivo .md dentro de una carpeta asignada a una capa, menos los excluidos. Gana la carpeta más específica. Las fuentes citadas (raw:) no cuentan como notas.',
+  enlace: 'Un par no dirigido de notas del mapa unidas por al menos un [[wikilink]] resuelto. A→B y B→A son un solo enlace. Los auto-enlaces y los enlaces a notas fuera del mapa se ignoran.',
+  motivo: 'Texto de «- [[nota]] — motivo» en la sección de conexiones; si no hay, la primera línea del cuerpo donde aparece el enlace.',
+  tema: 'La propiedad de tema del frontmatter; si falta, el tema más frecuente entre sus vecinos.',
+  hub: 'Por tema, la nota de la última capa con hub: true; si ninguna lo tiene, la primera de esa capa con el tema declarado.',
+  grado: 'Número de vecinos distintos.',
+};
 
 // ── Asistente de capas: el primer uso en un vault cualquiera ─────────────────
 const CAPAS_ESTANDAR = [
@@ -657,6 +742,22 @@ function subcarpetasFechadas(app, carpeta) {
 function esLlmWiki(app) {
   return !!(app.vault.getFileByPath('index.md') && app.vault.getFileByPath('log.md'));
 }
+// Plantillas de capas por tipo de vault. La primera es la de siempre (CAPAS_ESTANDAR); la
+// profesional salió de un vault jurídico-contable real que un usuario armó a mano con cinco capas.
+const PLANTILLAS = [
+  ['llm', 'LLM wiki', CAPAS_ESTANDAR],
+  ['profesional', 'Profesional (jurídico, contable)', [['Conceptos', 'definiciones canónicas'], ['Entidades', 'quién dicta, fiscaliza, autoriza'], ['Fuentes', 'leyes, circulares, manuales'], ['Aplicación', 'guías, servicios, proyectos'], ['Temas', 'hubs de dominio']]],
+  ['academico', 'Académico', [['Lecturas', 'papers y libros'], ['Notas de lectura', 'lo que subrayaste'], ['Conceptos', 'ideas con nombre propio'], ['Síntesis', 'ensayos y revisiones']]],
+  ['zettel', 'Zettelkasten', [['Fugaces', 'capturas rápidas'], ['Literatura', 'notas de lo leído'], ['Permanentes', 'ideas propias, una por nota'], ['Estructura', 'índices y mapas']]],
+];
+// Las capas que el usuario ya tiene, como plantilla «actual»: así el asistente sirve también
+// como editor permanente y no solo para el primer uso. Los nombres son suyos: no se traducen.
+function plantillaActual(aj) {
+  if (!aj.carpetas.trim()) return null;
+  const capas = aj.capas.split('\n').map((l) => l.split('|').map((x) => x.trim())).filter((x) => x[0]).map((x) => [x[0], x[1] || '']);
+  return capas.length ? ['actual', null, capas] : null;
+}
+
 class AsistenteCapas extends Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
   onOpen() {
@@ -665,27 +766,51 @@ class AsistenteCapas extends Modal {
     c.createEl('p', { text: T('El mapa ordena tus notas de izquierda a derecha, de lo que entra a lo que se sintetiza. Revisa en qué capa va cada carpeta; ya propusimos una según su nombre.') });
     const filas = detectarCarpetas(this.app);
     if (!filas.length) { c.createEl('p', { text: T('Tu vault todavía no tiene notas.') }); return; }
-    const opciones = { '0': T(CAPAS_ESTANDAR[0][0]), '1': T(CAPAS_ESTANDAR[1][0]), '2': T(CAPAS_ESTANDAR[2][0]), '3': T(CAPAS_ESTANDAR[3][0]), '-2': T('Fuentes citadas por ruta'), '-1': T('No mostrar') };
     // Carpetas de fuentes: se proponen las que tienen archivos que no son notas (PDF, capturas) o
     // cuyo nombre lo sugiere; el usuario confirma. Nada se asume por el nombre solo.
     const propuestas = detectarFuentes(this.app);
     for (const f of propuestas) if (!filas.some((x) => x.carpeta === f.carpeta)) filas.push({ carpeta: f.carpeta, notas: f.archivos, capa: -2, archivos: true });
-    for (const fila of filas) {
-      if (propuestas.some((f) => f.carpeta === fila.carpeta) && fila.capa === 0) fila.capa = -2;
-      new Setting(c).setName(fila.carpeta === '/' ? T('Notas en la raíz del vault') : fila.carpeta).setDesc(fila.archivos ? T('{0} archivo(s)', fila.notas) : T(fila.notas === 1 ? '{0} nota' : '{0} notas', fila.notas))
-        .addDropdown((d) => d.addOptions(opciones).setValue(String(fila.capa)).onChange((v) => { fila.capa = Number(v); }));
+    for (const fila of filas) if (propuestas.some((f) => f.carpeta === fila.carpeta) && fila.capa === 0) fila.capa = -2;
+    // Config existente: cada carpeta arranca en la capa que ya tiene, y las carpetas configuradas
+    // que la detección no propuso se agregan igual.
+    const actual = plantillaActual(this.plugin.ajustes);
+    const plantillas = actual ? [actual, ...PLANTILLAS] : PLANTILLAS;
+    this.plantilla = actual ? 'actual' : 'llm';
+    if (actual) {
+      const cfg = leerAjustes(this.plugin.ajustes), fuentesCfg = carpetasFuentesDe(this.plugin.ajustes).map((x) => x.ruta);
+      for (const [carpeta, n] of cfg.carpetas) { const fila = filas.find((f) => f.carpeta === carpeta); if (fila) fila.capa = n; else filas.push({ carpeta, notas: 0, capa: n }); }
+      for (const carpeta of fuentesCfg) { const fila = filas.find((f) => f.carpeta === carpeta); if (fila) fila.capa = -2; }
+      for (const fila of filas) if (!cfg.carpetas.some(([c]) => c === fila.carpeta) && !fuentesCfg.includes(fila.carpeta) && fila.capa >= 0) fila.capa = -1;
+      c.createEl('p', { cls: 'setting-item-description', text: T('La capa actual de cada carpeta ya viene marcada.') });
     }
+    const capasDe = () => plantillas.find((p) => p[0] === this.plantilla)[2];
+    new Setting(c).setName(T('Plantilla de capas')).addDropdown((d) => {
+      d.addOptions(Object.fromEntries(plantillas.map(([id, nombre, capas]) => [id, nombre ? T(nombre) : capas.map((x) => x[0]).join(' → ')]))).setValue(this.plantilla)
+        .onChange((v) => { this.plantilla = v; const n = capasDe().length; for (const f of filas) if (f.capa >= n) f.capa = n - 1; pintarFilas(); });
+    });
+    const cuerpo = c.createDiv();
+    const pintarFilas = () => {
+      cuerpo.empty();
+      const capas = capasDe(), traducir = this.plantilla !== 'actual';
+      const opciones = Object.fromEntries(capas.map((x, i) => [String(i), traducir ? T(x[0]) : x[0]]));
+      opciones['-2'] = T('Fuentes citadas por ruta'); opciones['-1'] = T('No mostrar');
+      for (const fila of filas) {
+        new Setting(cuerpo).setName(fila.carpeta === '/' ? T('Notas en la raíz del vault') : fila.carpeta).setDesc(fila.archivos ? T('{0} archivo(s)', fila.notas) : T(fila.notas === 1 ? '{0} nota' : '{0} notas', fila.notas))
+          .addDropdown((d) => d.addOptions(opciones).setValue(String(fila.capa)).onChange((v) => { fila.capa = Number(v); }));
+      }
+    };
+    pintarFilas();
     if (esLlmWiki(this.app) && propuestas.length) c.createEl('p', { cls: 'setting-item-description', text: T('Detecté un LLM wiki (index.md y log.md con entradas fechadas): las carpetas marcadas como fuentes se mostrarán bajo demanda.') });
     new Setting(c)
       .addButton((b) => b.setButtonText(T('Ahora no')).onClick(async () => { this.plugin.ajustes.configurado = true; await this.plugin.guardar(); this.close(); }))
-      .addButton((b) => b.setButtonText(T('Aplicar')).setCta().onClick(() => this.aplicar(filas)));
+      .addButton((b) => b.setButtonText(T('Aplicar')).setCta().onClick(() => this.aplicar(filas, capasDe(), this.plantilla !== 'actual')));
   }
-  async aplicar(filas) {
+  async aplicar(filas, capasPlantilla = CAPAS_ESTANDAR, traducir = true) {
     const usadas = [...new Set(filas.filter((f) => f.capa >= 0).map((f) => f.capa))].sort((a, b) => a - b);
     if (!usadas.length) { new Notice(T('Elige al menos una carpeta para mostrar')); return; }
     const indice = Object.fromEntries(usadas.map((capa, i) => [capa, i]));
     const aj = this.plugin.ajustes;
-    aj.capas = usadas.map((capa) => CAPAS_ESTANDAR[capa].map((x) => T(x)).join(' | ')).join('\n');
+    aj.capas = usadas.map((capa) => capasPlantilla[capa].map((x) => (traducir ? T(x) : x)).join(' | ')).join('\n');
     aj.carpetas = filas.filter((f) => f.capa >= 0).map((f) => `${f.carpeta} = ${indice[f.capa]}`).join('\n');
     const fuentes = filas.filter((f) => f.capa === -2);
     if (fuentes.length) { aj.carpetasFuentes = fuentes.map((f) => f.carpeta + (subcarpetasFechadas(this.app, f.carpeta) ? '/*' : '')).join('\n'); if (aj.fuentes === 'no') aj.fuentes = 'demanda'; }
@@ -838,12 +963,23 @@ class VistaMapa extends ItemView {
     this.D.nodos.forEach((n) => { this.base[n.id] = n; this.adyBase[n.id] = new Set(); });
     this.D.aristas.forEach(([a, b]) => { this.adyBase[a].add(b); this.adyBase[b].add(a); });
     const ultima = this.D.capas.length - 1;
-    this.hubs = {};
+    // El hub de un tema: la nota de la última capa marcada con `hub: true`; si no hay, la primera
+    // con el tema declarado. Y se cuenta cuántas más comparten tema en esa capa, para avisarlo.
+    this.hubs = {}; this.hermanas = {};
+    this.D.nodos.forEach((n) => { if (n.capa === ultima && n.tema && n.propio) { if (n.hub) this.hubs[n.tema] = n.id; this.hermanas[n.tema] = (this.hermanas[n.tema] || 0) + 1; } });
     this.D.nodos.forEach((n) => { if (n.capa === ultima && n.tema && n.propio && !this.hubs[n.tema]) this.hubs[n.tema] = n.id; });
     [...this.colapsados].forEach((t) => { if (!this.D.temas[t]) this.colapsados.delete(t); });
     const conEnlaces = this.D.nodos.filter((n) => n.enlaces && n.enlaces.length).length;
-    const nFuentes = this.D.nodos.filter((n) => n.fuente).length;
-    this.marca.setText(T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length) + (nFuentes ? T(' · {0} fuentes', nFuentes) : '') + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : ''));
+    const nFuentes = this.D.nodos.filter((n) => n.fuente).length, fuera = this.D.config?.sinCapa.length || 0;
+    this.marca.setText(T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length) + (nFuentes ? T(' · {0} archivos citados', nFuentes) : '') + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : '') + (fuera ? T(' · {0} fuera del mapa', fuera) : ''));
+    // Avisos de configuración, una vez por sesión: una carpeta sin notas suele ser una ruta mal
+    // escrita en «Carpetas → capa»; notas sin capa son notas que el usuario cree que ve y no ve.
+    const aviso = JSON.stringify(this.D.config || {});
+    if (aviso !== this.avisoConfig) {
+      this.avisoConfig = aviso;
+      for (const c of this.D.config?.carpetasVacias || []) new Notice(T('Carpeta sin notas en el vault: {0}', c), 8000);
+      if (fuera) new Notice(T('{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».', fuera), 8000);
+    }
     if (this.solo && !this.D.temas[this.solo]) this.solo = null;
     if (this.vacios) this.listaVacios = this.calcularVacios();
     this.rehacer();
@@ -962,6 +1098,7 @@ class VistaMapa extends ItemView {
     if (this.reciente) t.push(T('◷ últimos {0} días', this.reciente));
     if (this.conEnlace) t.push(T('◯ con enlaces externos'));
     if (this.todas) t.push(T('todas las conexiones'));
+    if (this.largos) t.push(T('⇄ largo alcance'));
     if (this.eligiendo) t.push(this.eligiendo.desde ? T('→ toca la nota de destino') : T('→ toca la nota de origen'));
     this.estado.setText(t.join(' · '));
   }
@@ -1014,9 +1151,12 @@ class VistaMapa extends ItemView {
     for (const d of [0, 7, 30]) m.addItem((i) => i.setTitle(d ? T('Actualizado en {0} días', d) : T('Toda la actividad')).setChecked(this.reciente === d).setIcon('clock').onClick(() => { this.reciente = d; this.pintarEstado(); this.pedir(); }));
     if (this.plugin.ajustes.propiedadEnlaces) m.addItem((i) => i.setTitle(T('Solo notas con enlaces externos')).setChecked(this.conEnlace).setIcon('external-link').onClick(() => { this.conEnlace = !this.conEnlace; this.pintarEstado(); this.pedir(); }));
     m.addItem((i) => i.setTitle(T('Mostrar todas las conexiones')).setChecked(this.todas).setIcon('git-fork').onClick(() => { this.todas = !this.todas; this.pintarEstado(); this.pedir(); }));
+    if (this.D.capas.length > 2) m.addItem((i) => i.setTitle(T('Solo enlaces de largo alcance')).setChecked(!!this.largos).setIcon('move-horizontal').onClick(() => { this.largos = !this.largos; this.pintarEstado(); this.pedir(); }));
     m.addSeparator();
     m.addItem((i) => i.setTitle(T('Exportar imagen (PNG)')).setIcon('image-down').onClick(() => this.exportar()));
+    m.addItem((i) => i.setTitle(T('Exportar datos (JSON y CSV)')).setIcon('file-json').onClick(() => this.exportarDatos()));
     m.addItem((i) => i.setTitle(T('Recargar el mapa')).setIcon('refresh-cw').onClick(() => this.recargar()));
+    m.addItem((i) => i.setTitle(T('Recargar ajustes desde data.json')).setIcon('file-cog').onClick(() => this.plugin.recargarAjustes()));
     m.addItem((i) => i.setTitle(T('Asistente de capas')).setIcon('layers').onClick(() => new AsistenteCapas(this.app, this.plugin).open()));
   }
 
@@ -1115,8 +1255,11 @@ class VistaMapa extends ItemView {
     if (n.grado === 0) p.push(T('huérfana: ninguna nota la enlaza ni enlaza a otra'));
     if (!n.propio && this.plugin.ajustes.propiedadTema && n.capa !== 0) p.push(T('sin propiedad `{0}`', this.plugin.ajustes.propiedadTema));
     if (n.sinMotivo) p.push(T('{0} enlace(s) sin motivo escrito', n.sinMotivo));
+    const ultima = this.D.capas.length - 1;
+    if (n.capa === ultima && n.tema && (this.hermanas?.[n.tema] || 0) > 1 && this.hubs[n.tema] !== n.id) p.push(T('otras {0} nota(s) de este tema en la capa de temas; solo la hub lleva el nombre del tema. Para elegirla, pon `hub: true` en su frontmatter', this.hermanas[n.tema] - 1));
     return p;
   }
+  esHub(n) { return !!n && !n.virtual && n.capa === this.D.capas.length - 1 && !!n.tema && this.hubs?.[n.tema] === n.id; }
   activo(n) { return !this.reciente || n.agrupados || diasDesde(n.updated) <= this.reciente; }
   traza(id) {
     const nivel = { [id]: 0 }, cola = [id];
@@ -1227,6 +1370,9 @@ class VistaMapa extends ItemView {
         continue;
       }
       const contiguas = Math.abs(A.capa - B.capa) === 1, tenue = this.reciente && !(this.activo(A) && this.activo(B));
+      // Largo alcance: solo los enlaces que saltan dos capas o más, bien visibles. Es el positivo
+      // de los vacíos: dónde dos mitades del vault sí se tocan de punta a punta.
+      if (this.largos && !nivel) { if (Math.abs(A.capa - B.capa) >= 2) curva(A, B, 0.75, 1.3 + grueso, tono); else if (contiguas) curva(A, B, 0.03, 0.5, tono); continue; }
       if (nivel) {
         const na = nivel[e.a], nb = nivel[e.b];
         if (na === undefined || nb === undefined) { if (contiguas || e.superE) curva(A, B, 0.025, 0.6 + grueso, tono); continue; }
@@ -1264,6 +1410,8 @@ class VistaMapa extends ItemView {
       const r = (radial && n.id === this.foco ? 9 : base) / sk;
       ctx.fillStyle = rgba(color(n.tema), activo ? 1 : 0.16); ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 6.283); ctx.fill();
       if (n.agrupados) { ctx.strokeStyle = rgba(color(n.tema), 0.5); ctx.lineWidth = 2 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 / vista.k, 0, 6.283); ctx.stroke(); }
+      // La hub del tema lleva un anillo del color del tema: así se distingue de sus hermanas.
+      else if (!radial && this.esHub(n) && (this.hermanas?.[n.tema] || 0) > 1) { ctx.strokeStyle = rgba(color(n.tema), 0.6); ctx.lineWidth = 1.5 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 3.5 / vista.k, 0, 6.283); ctx.stroke(); }
       if (this.reciente && activo && !n.agrupados && diasDesde(n.updated) <= this.reciente) { ctx.strokeStyle = rgba('#FFFFFF', 0.5); ctx.lineWidth = 3 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 / vista.k, 0, 6.283); ctx.stroke(); }
       if (n.enlaces && n.enlaces.length) { ctx.strokeStyle = rgba('#FFFFFF', activo ? 0.75 : 0.2); ctx.lineWidth = 1 / vista.k; ctx.beginPath(); ctx.arc(n.x, n.y, r + 2.5 / vista.k, 0, 6.283); ctx.stroke(); }
       if (this.salud && this.problemas(n).length) { ctx.strokeStyle = '#FF6B6B'; ctx.lineWidth = 1.6 / vista.k; ctx.setLineDash([3 / vista.k, 2 / vista.k]); ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 / vista.k, 0, 6.283); ctx.stroke(); ctx.setLineDash([]); }
@@ -1278,7 +1426,10 @@ class VistaMapa extends ItemView {
     const aire = 3 / vista.k;
     for (const n of rotulos) {
       const fijo = esFijo(n);
-      let texto = (n.capa === ultima || n.agrupados) && this.D.temas[n.tema] ? this.D.temas[n.tema][0] : n.titulo;
+      // Solo la hub del tema lleva el nombre del tema; sus hermanas de la última capa conservan su
+      // título. Antes todas se rotulaban igual y se veían «dos Derecho tributario».
+      const esHub = n.virtual || (n.capa === ultima && this.hubs[n.tema] === n.id);
+      let texto = (esHub || n.agrupados) && this.D.temas[n.tema] ? this.D.temas[n.tema][0] : n.titulo;
       if (n.agrupados) texto += ` · ${n.agrupados + 1} notas`;
       const fuerte = fijo || n.capa === ultima, tam = n.capa === ultima || n.agrupados ? 13 : 11.5;
       ctx.font = f(fuerte ? 600 : 500, tam);
@@ -1364,7 +1515,7 @@ class VistaMapa extends ItemView {
     const grados = this.N.filter((x) => !x.fuente && x.capa !== ultima).map((x) => this.ady[x.id].length).sort((x, y) => y - x);
     const umbral = grados[Math.floor(grados.length * 0.1)] || Infinity, out = [];
     if (n.agrupados) out.push(T('Agrupa {0} notas del tema. Tócalo sostenido o usa «Expandir» para verlas por separado.', n.agrupados + 1));
-    else if (n.capa === ultima) out.push(T('Página de síntesis: resume el tema y de ella cuelgan sus notas.'));
+    else if (n.capa === ultima) { out.push(T('Página de síntesis: resume el tema y de ella cuelgan sus notas.')); if (this.esHub(n) && (this.hermanas?.[n.tema] || 0) > 1) out.push(T('hub del tema: lleva el nombre del tema en el mapa')); }
     else if (!vec.length) out.push(T('Aislada: ninguna nota la enlaza y ella no enlaza a ninguna.'));
     else {
       if (this.ady[n.id].length >= umbral) out.push(T('Nota central: está entre el 10 % más conectado del cerebro.'));
@@ -1626,6 +1777,8 @@ class VistaMapa extends ItemView {
     const rotas = this.D.nodos.filter((n) => n.fuente && n.rota).length, sinV = this.D.fuentes?.sinVinculo.length || 0;
     if (this.D.fuentes?.carpetas.length) new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo · {3} referencia(s) rota(s) · {4} fuente(s) sin vínculo', huerf, sinTema, sinMot, rotas, sinV), 8000);
     else new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
+    const fuera = this.D.config?.sinCapa.length || 0;
+    if (fuera) new Notice(T('{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».', fuera), 8000);
   }
   async exportar() {
     const blob = await new Promise((ok) => this.lienzo.toBlob(ok, 'image/png'));
@@ -1637,6 +1790,33 @@ class VistaMapa extends ItemView {
     while (this.app.vault.getFileByPath(ruta)) ruta = normalizePath(`${base}mapa-neuronal-${hoy()}-${i++}.png`);
     await this.app.vault.createBinary(ruta, await blob.arrayBuffer());
     new Notice(T('Imagen guardada en {0}', ruta));
+  }
+  // El grafo tal como el plugin lo cuenta, para análisis afuera (Python, hojas de cálculo, Graphify).
+  // Un JSON con nodos, enlaces y las reglas de conteo, y un CSV de enlaces para lo rápido.
+  datosExportables() {
+    const ultima = this.D.capas.length - 1;
+    const nodos = this.D.nodos.filter((n) => !n.fuente).map((n) => ({ id: n.id, titulo: n.titulo, capa: n.capa, capaNombre: this.D.capas[n.capa]?.[1] || '', tema: n.tema, temaNombre: n.tema ? this.D.temas[n.tema]?.[0] || n.tema : null, temaDeclarado: n.propio, grado: n.grado, hub: n.capa === ultima && this.hubs[n.tema] === n.id, updated: n.updated }));
+    const ids = new Set(nodos.map((n) => n.id));
+    const enlaces = this.D.aristas.filter(([a, b]) => ids.has(a) && ids.has(b)).map(([a, b, m, fr]) => ({ origen: a, destino: b, motivo: m || '', frase: fr ? fr.texto : '', linea: fr ? fr.linea : null }));
+    const fuentes = this.D.nodos.filter((n) => n.fuente).map((n) => ({ id: n.id, ruta: n.ruta, titulo: n.titulo, rota: !!n.rota }));
+    return { plugin: NOMBRE, version: this.plugin.manifest?.version || '', fecha: hoy(), capas: this.D.capas.map(([id, nombre, desc]) => ({ id, nombre, descripcion: desc })), temas: Object.entries(this.D.temas).map(([id, [nombre, color]]) => ({ id, nombre, color })),
+      resumen: { nodos: nodos.length, enlaces: enlaces.length, fuentes: fuentes.length, porCapa: this.D.capas.map((_, i) => nodos.filter((n) => n.capa === i).length) }, reglas: REGLAS, nodos, enlaces, fuentes };
+  }
+  async exportarDatos() {
+    const d = this.datosExportables();
+    const csvCelda = (v) => { const s = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const csv = ['origen,destino,capa_origen,capa_destino,motivo,frase'].concat(d.enlaces.map((e) => {
+      const A = this.base[e.origen], B = this.base[e.destino];
+      return [e.origen, e.destino, A?.capa, B?.capa, e.motivo, e.frase].map(csvCelda).join(',');
+    })).join('\n');
+    const carpeta = this.plugin.ajustes.carpetaExport ? normalizePath(this.plugin.ajustes.carpetaExport) : '';
+    if (carpeta && carpeta !== '/' && !this.app.vault.getFolderByPath(carpeta)) await this.app.vault.createFolder(carpeta);
+    const base = carpeta && carpeta !== '/' ? carpeta + '/' : '';
+    const libre = (ext) => { let ruta = normalizePath(`${base}mapa-neuronal-${hoy()}.${ext}`), i = 2; while (this.app.vault.getFileByPath(ruta)) ruta = normalizePath(`${base}mapa-neuronal-${hoy()}-${i++}.${ext}`); return ruta; };
+    const rj = libre('json'), rc = libre('csv');
+    await this.app.vault.create(rj, JSON.stringify(d, null, 2));
+    await this.app.vault.create(rc, csv);
+    new Notice(T('Datos guardados en {0}', rj + ' · ' + rc));
   }
   abrirNota(ruta, linea) {
     const f = this.app.vault.getFileByPath(ruta);
@@ -1752,6 +1932,7 @@ export default class MapaNeuronal extends Plugin {
     this.addSettingTab(new AjustesMapa(this.app, this));
     this.addRibbonIcon('brain-circuit', T('Abrir el mapa'), () => this.abrir());
     this.addCommand({ id: 'abrir', name: T('Abrir el mapa'), callback: () => this.abrir() });
+    this.addCommand({ id: 'recargar-ajustes', name: T('Recargar ajustes desde data.json'), callback: () => this.recargarAjustes() });
     this.addCommand({ id: 'enfocar-actual', name: T('Mostrar la nota actual en el mapa'), checkCallback: (probar) => {
       const f = this.app.workspace.getActiveFile(); if (!f) return false;
       if (!probar) this.abrir().then(() => this.app.workspace.getLeavesOfType(VISTA)[0]?.view.enfocar(f.path, true));
@@ -1761,6 +1942,13 @@ export default class MapaNeuronal extends Plugin {
     this.registerEvent(this.app.metadataCache.on('resolved', () => this.refrescarVistas()));
   }
   async guardar() { await this.saveData(this.ajustes); }
+  // Para quien edita data.json a mano (ya pasó): vuelve a leerlo sin reiniciar Obsidian.
+  async recargarAjustes() {
+    const guardado = await this.loadData();
+    this.ajustes = Object.assign({}, AJUSTES_BASE, guardado);
+    this.app.workspace.getLeavesOfType(VISTA).forEach((h) => h.view.recargar?.());
+    new Notice(T('Ajustes recargados desde data.json'));
+  }
   tieneIA() {
     const prov = this.ajustes.proveedorIA || 'claude', def = PROVEEDORES[prov];
     if (!def) return false;
