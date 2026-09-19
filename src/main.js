@@ -4,6 +4,7 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.27.1 (17.09.2026): al aprobar un resumen, la ficha lo muestra en el acto con su etiqueta.
  * v1.27 (17.09.2026): fuentes por carpetas configurables y bajo demanda. Rutas con tildes y espacios;
  *   ficha de fuente con Abrir, «citada por» y salto a la cita; referencias rotas en salud; buscador
  *   sobre el índice completo; bandeja «fuentes sin vínculo» con contador. Nada de esto asume raw/:
@@ -124,6 +125,7 @@ const EN = {
   'sin tema': 'no topic',
   '{0} · {1} notas': '{0} · {1} notes',
   'Resumen tomado del primer párrafo de la nota.': 'Summary taken from the first paragraph of the note.',
+  '✓ Resumen aprobado y guardado en la propiedad resumen.': '✓ Summary approved and saved in the summary property.',
   'Resumen aprobado (propiedad resumen).': 'Approved summary (summary property).',
   'Rehacer resumen con IA': 'Redo summary with AI',
   'Resumir con IA': 'Summarize with AI',
@@ -164,7 +166,6 @@ const EN = {
   'Reintentar': 'Try again',
   'Descartar': 'Discard',
   'Motivo escrito en la nota y registrado.': 'Reason written in the note and logged.',
-  '✓ Guardado en la propiedad resumen de la nota': '✓ Saved to the note\'s summary property',
   '✓ Escrito en la nota y registrado': '✓ Written to the note and logged',
   'Resumen guardado en la propiedad resumen de la nota.': "Summary saved in the note's summary property.",
   'Cita de la nota de origen': 'Quote from the source note',
@@ -1412,7 +1413,8 @@ class VistaMapa extends ItemView {
       if (!n.resumenAprobado && !n.fuente && !n.virtual) rs.addClass('mn-extraido');
     }
     if (n.resumen && !n.resumenAprobado && !n.fuente && !n.virtual) explica.createDiv({ cls: 'mn-capa', text: T('Resumen tomado del primer párrafo de la nota.') });
-    if (n.resumenAprobado) explica.createDiv({ cls: 'mn-capa', text: T('Resumen aprobado (propiedad resumen).') });
+    if (n.resumenAprobado) explica.createDiv({ cls: 'mn-capa' + (this.recienAprobado === n.id ? ' mn-recien' : ''), text: this.recienAprobado === n.id ? T('✓ Resumen aprobado y guardado en la propiedad resumen.') : T('Resumen aprobado (propiedad resumen).') });
+    if (this.recienAprobado === n.id) { const rs = explica.querySelector?.('.mn-resumen2'); if (rs) rs.addClass('mn-recien'); this.recienAprobado = null; }
     if (!n.fuente && !n.virtual && !n.agrupados && this.plugin.tieneIA()) {
       const zona = explica.createDiv('mn-ia');
       zona.createEl('button', { cls: 'mn-btn mn-btn-ia', text: n.resumenAprobado ? T('Rehacer resumen con IA') : T('Resumir con IA') }).onclick = () => this.proponerResumen(n, zona);
@@ -1510,7 +1512,10 @@ class VistaMapa extends ItemView {
       // Guardar y dejar la caja idéntica —con «Reintentar» y «Descartar» todavía ahí— hace dudar
       // de si el clic entró. La caja pasa a estado guardado y los botones de rehacer desaparecen:
       // ya no hay nada que reintentar ni que descartar.
-      if (res.aprobable) { const ok = acc.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Aprobar y guardar en la nota') }); ok.onclick = async () => { ok.disabled = true; await this.plugin.aprobarResumen(n.ruta, res); new Notice(T('Resumen guardado en la propiedad resumen de la nota.')); this.marcarGuardado(caja, acc, T('✓ Guardado en la propiedad resumen de la nota')); }; }
+      // Al aprobar, la ficha se vuelve a pintar en el acto con el resumen aprobado y su etiqueta.
+      // Antes la caja decía «Guardado» pero arriba seguía el resumen extraído del primer párrafo
+      // con su aviso: parecía que no se había guardado hasta cerrar y reabrir la nota.
+      if (res.aprobable) { const ok = acc.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Aprobar y guardar en la nota') }); ok.onclick = async () => { ok.disabled = true; await this.plugin.aprobarResumen(n.ruta, res); new Notice(T('Resumen guardado en la propiedad resumen de la nota.')); for (const x of [n, this.base?.[n.id]]) if (x) { x.resumen = x.resumenAprobado = res.resumen; } this.recienAprobado = n.id; this.abrirPanel(this.porId?.[n.id] || n); }; }
       acc.createEl('button', { cls: 'mn-btn', text: T('Reintentar') }).onclick = () => this.proponerResumen(n, zona);
       acc.createEl('button', { cls: 'mn-btn', text: T('Descartar') }).onclick = () => zona.empty();
     } catch (err) { zona.empty(); zona.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + (err.message || String(err)) }); }

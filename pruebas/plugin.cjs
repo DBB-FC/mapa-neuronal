@@ -122,7 +122,9 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   p.cierto('sin propiedad de fecha configurada, deja la fecha que ya estaba', notas['temas/tema-tienda.md'].includes('updated: 2026-01-06'));
   pl2.ajustes.propiedadFecha = 'updated';
   await pl2.aprobarResumen('temas/tema-tienda.md', { resumen: 'Segunda síntesis.', citas: [], modelo: 'prueba' });
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  // Misma fecha LOCAL que usa el plugin: con toISOString() la prueba fallaba entre las 21:00 y
+  // las 00:00 de Chile, porque en UTC ya era el día siguiente.
+  const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
   p.cierto('aprobar un resumen estampa la fecha de hoy', notas['temas/tema-tienda.md'].includes('updated: ' + hoyStr));
 
   // ── 6. La verificación de citas, que es el candado del producto ──────────────────────────────

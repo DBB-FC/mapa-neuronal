@@ -127,3 +127,8 @@
 .mn-raiz .mn-resultado .mn-tenue { color: rgba(230,234,255,.45); }
 .mn-raiz .mn-panel .mn-motivo.mn-cita { color: #8BE9FD; cursor: pointer; }
 .mn-raiz .mn-panel .mn-motivo.mn-cita:hover { text-decoration: underline; }
+
+/* 1.27.1 — el resumen recién aprobado se destaca un instante */
+.mn-raiz .mn-panel .mn-resumen2.mn-recien { border-left: 3px solid #34D17A; padding-left: 8px; animation: mn-recien 2.4s ease-out forwards; }
+.mn-raiz .mn-panel .mn-capa.mn-recien { color: #34D17A; }
+@keyframes mn-recien { from { background: rgba(52,209,122,.18); } to { background: transparent; } }
