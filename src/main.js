@@ -4,6 +4,8 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.29.2 (19.09.2026): el estado («largo alcance», «salud») ya no tapa el título de la primera capa;
+ *   un rótulo que no cabe a la derecha se dibuja a la izquierda del nodo.
  * v1.29.1 (19.09.2026): el asistente con un vault anidado (wiki/…) muestra las carpetas configuradas
  *   con su cuenta real y ya no ofrece la carpeta madre como «No mostrar».
  * v1.29 (19.09.2026): el móvil, visto en un iPhone real —
@@ -1125,7 +1127,11 @@ class VistaMapa extends ItemView {
     if (this.todas) t.push(T('todas las conexiones'));
     if (this.largos) t.push(T('⇄ largo alcance'));
     if (this.eligiendo) t.push(this.eligiendo.desde ? T('→ toca la nota de destino') : T('→ toca la nota de origen'));
+    const antes = this.barra?.offsetHeight;
     this.estado.setText(t.join(' · '));
+    // [1.29.2] El texto de estado agranda la barra: si cambió su alto, el mapa se vuelve a
+    // medir para que el título de la primera capa no quede debajo (visto en un iPhone).
+    if (this.barra && this.barra.offsetHeight !== antes && this.W) { this.medir(); this.pedir(); }
   }
   alternarColapso(t) {
     this.colapsados.has(t) ? this.colapsados.delete(t) : this.colapsados.add(t);
@@ -1464,7 +1470,9 @@ class VistaMapa extends ItemView {
       const fuerte = fijo || n.capa === ultima, tam = n.capa === ultima || n.agrupados ? 13 : 11.5;
       ctx.font = f(fuerte ? 600 : 500, tam);
       const w = ctx.measureText(texto).width, pad = 4 / vista.k, h = tam / sk + 6 / vista.k, r = 12 / vista.k;
-      const izquierda = radial ? n.x < this.porId[this.foco].x - 1 : n.capa === ultima;
+      let izquierda = radial ? n.x < this.porId[this.foco].x - 1 : n.capa === ultima;
+      // [1.29.2] Si el rótulo no cabe a la derecha del lienzo, va a la izquierda del nodo.
+      if (!izquierda && !radial && n.x + r + w + pad * 2 > this.anchoLogico - 6 / vista.k) izquierda = true;
       const x = izquierda ? n.x - r - w - pad * 2 : n.x + r, y = n.y - h / 2;
       const caja = { x: x - aire, y: y - aire, w: w + pad * 2 + aire * 2, h: h + aire * 2 };
       const choca = cajas.some((c) => caja.x < c.x + c.w && c.x < caja.x + caja.w && caja.y < c.y + c.h && c.y < caja.y + caja.h);
