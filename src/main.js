@@ -4,6 +4,8 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.30 (19.09.2026): la escena se cachea en dos capas fuera de pantalla y cada cuadro de la animación
+ *   solo copia y pinta los pulsos: las 1.100 curvas de un vault real ya no se rasterizan 30 veces por segundo.
  * v1.29.2 (19.09.2026): el estado («largo alcance», «salud») ya no tapa el título de la primera capa;
  *   un rótulo que no cabe a la derecha se dibuja a la izquierda del nodo.
  * v1.29.1 (19.09.2026): el asistente con un vault anidado (wiki/…) muestra las carpetas configuradas
@@ -1271,7 +1273,7 @@ class VistaMapa extends ItemView {
     if (n.fuente && this.plugin.ajustes.fuentes === 'demanda') { const v = this.adyBase[id]; const primera = v && [...v][0]; if (primera) { this.enfocar(primera, true); return; } }
     this.enfocar(id, true);
   }
-  pedir() { if (!this.pendiente && !this.cerrada) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
+  pedir() { this.sucio = true; if (!this.pendiente && !this.cerrada) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
   visible(n) {
     if (this.dist) { if (!(n.id in this.dist)) return false; }
     else if (n.oculto) return false;
@@ -1316,8 +1318,38 @@ class VistaMapa extends ItemView {
   }
 
   // ── dibujo ─────────────────────────────────────────────────────────────────
+  colorTema(t) { return this.D.temas[t] ? this.D.temas[t][1] : '#C9D1FF'; }
+  // [1.30] La escena se pinta en dos capas fuera de pantalla (A: fondo y enlaces; B: nodos y
+  // rótulos) y solo se rehace cuando algo cambia (pedir). Cada cuadro de la animación copia
+  // A, pinta los pulsos y copia B: en un vault de 1.100 enlaces, el teléfono dejaba de
+  // rasterizar las 1.100 curvas 30 veces por segundo.
   dibujar() {
     const { ctx, W, H, vista } = this; if (!ctx || !W || (!this.capas && !this.dist)) return;
+    const dpr = this.dpr || 1, w = Math.round(W * dpr), h = Math.round(H * dpr);
+    if (!this.capaA || this.capaA.width !== w || this.capaA.height !== h) {
+      try {
+        this.capaA = document.createElement('canvas'); this.capaB = document.createElement('canvas');
+        this.capaA.width = this.capaB.width = w; this.capaA.height = this.capaB.height = h;
+        this.ctxA = this.capaA.getContext('2d'); this.ctxB = this.capaB.getContext('2d');
+      } catch { this.ctxA = null; }
+      this.sucio = true;
+    }
+    if (!this.ctxA || !this.ctxB) { this.dibujarEscena(ctx, true); return; } // sin canvas fuera de pantalla: como antes
+    if (this.sucio || !this.escenaLista) {
+      this.ctxB.setTransform(1, 0, 0, 1, 0, 0); this.ctxB.clearRect(0, 0, w, h);
+      this.dibujarEscena(this.ctxA, false);
+      this.escenaLista = true; this.sucio = false;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this.capaA, 0, 0);
+    if (this.debeAnimar()) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(vista.x, vista.y); ctx.scale(vista.k, vista.k);
+      this.dibujarPulsos(ctx, Math.sqrt(vista.k), (t) => this.colorTema(t));
+      ctx.restore();
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this.capaB, 0, 0);
+  }
+  dibujarEscena(ctx, directo) {
+    const { W, H, vista } = this; if (!ctx || !W || (!this.capas && !this.dist)) return;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const g = ctx.createRadialGradient(W * 0.55, H * 0.42, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.85);
     g.addColorStop(0, '#1B1D52'); g.addColorStop(0.5, '#0C1233'); g.addColorStop(1, '#04060F');
@@ -1329,7 +1361,7 @@ class VistaMapa extends ItemView {
     ctx.save(); ctx.translate(vista.x, vista.y); ctx.scale(vista.k, vista.k);
     if (!this.familia) this.familia = getComputedStyle(this.contentEl).getPropertyValue('--font-monospace').trim() || 'ui-monospace, Menlo, monospace';
     const sk = Math.sqrt(vista.k), f = (peso, tam) => `${peso} ${tam / sk}px ${this.familia}`;
-    const color = (t) => (this.D.temas[t] ? this.D.temas[t][1] : '#C9D1FF');
+    const color = (t) => this.colorTema(t);
     const radial = !!this.dist, ultima = this.D.capas.length - 1;
     const enCamino = this.camino ? new Set(this.camino) : null;
     const centro = enCamino || radial ? (radial ? this.foco : null) : this.foco || this.sobre;
@@ -1421,7 +1453,11 @@ class VistaMapa extends ItemView {
     }
     ctx.globalCompositeOperation = 'source-over';
 
-    this.dibujarPulsos(ctx, sk, color);
+    if (directo) this.dibujarPulsos(ctx, sk, color);
+    else { // lo que sigue (nodos y rótulos) va a la capa B; los pulsos se pintan entre las dos
+      ctx.restore(); ctx = this.ctxB;
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.save(); ctx.translate(vista.x, vista.y); ctx.scale(vista.k, vista.k);
+    }
 
     if (this.vacios && !enCamino && !radial) {
       for (const v of this.listaVacios) {
