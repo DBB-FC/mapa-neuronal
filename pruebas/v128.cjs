@@ -65,6 +65,20 @@ const menuFalso = () => ({ items: [], addItem(f) { const c = { titulo: '', setTi
   const Dn = await construir(appN, Object.assign({}, AJUSTES_BASE, { capas: 'E | e\nT | t', carpetas: 'wiki/diario = 0\nwiki/temas = 1', fuentes: 'no' }));
   p.igual('anidado: solo cuenta lo suelto dentro del árbol mapeado', Dn.config.sinCapa, ['wiki/suelta.md']);
 
+  // ── 1.29: el chip de tema atenúa, no esconde; y las notas más conectadas llevan rótulo ──
+  {
+    const { app: a9 } = vaultSimulado({ ...NOTAS });
+    const pl9 = new Plugin(); pl9.app = a9; pl9.ajustes = Object.assign({}, AJUSTES, { fuentes: 'no' }); pl9.guardar = async () => {}; pl9.manifest = { version: 't' };
+    const v9 = new VistaMapa({}, pl9); v9.app = a9; v9.contentEl = el(); v9.lienzo = el(); v9.lienzo.getContext = () => contexto2D();
+    v9.ctx = v9.lienzo.getContext(); v9.marca = el(); v9.chips = el(); v9.estado = el(); v9.panel = el(); v9.guia = el(); v9.resultados = el();
+    await v9.recargar();
+    v9.solo = 'tienda';
+    p.cierto('con un tema elegido, las notas de otros temas siguen visibles', v9.N.every((n) => v9.visible(n) || n.oculto));
+    const dest = v9.N.filter((n) => n.destacado);
+    p.cierto('hay notas destacadas por grado y ninguna en la última capa', dest.length > 0 && dest.every((n) => n.capa < v9.D.capas.length - 1));
+    p.cierto('como mucho tres por capa', [0, 1, 2].every((c) => dest.filter((n) => n.capa === c).length <= 3));
+  }
+
   // ── 3. La vista elige la hub y avisa a sus hermanas ──────────────────────────────────────────
   const v = vista(app, AJUSTES, D);
   v.plugin.construir = null;
